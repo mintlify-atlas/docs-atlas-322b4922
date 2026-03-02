@@ -1,0 +1,158 @@
+{
+  "projectType": "saas",
+  "projectName": "Mempool",
+  "projectDescription": "Open-source Bitcoin blockchain explorer and mempool visualizer with real-time transaction fee tracking",
+  "theme": "aspen",
+  "primaryColor": "#F7931A",
+  "lightColor": "#FFA726",
+  "darkColor": "#E67E22",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Installation",
+            "pages": [
+              "installation/one-click",
+              "installation/docker",
+              "installation/manual",
+              "installation/production"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/mempool-visualizer",
+              "features/blockchain-explorer",
+              "features/fee-estimation",
+              "features/mining-dashboard",
+              "features/lightning-explorer",
+              "features/transaction-acceleration"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/backend-config",
+              "configuration/frontend-config",
+              "configuration/bitcoin-core",
+              "configuration/electrum-server",
+              "configuration/database"
+            ]
+          },
+          {
+            "group": "Self-Hosting",
+            "pages": [
+              "self-hosting/requirements",
+              "self-hosting/node-distros",
+              "self-hosting/scaling",
+              "self-hosting/maintenance"
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "development/setup",
+              "development/architecture",
+              "development/contributing",
+              "development/testing"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/introduction",
+              "api/authentication",
+              "api/rate-limits"
+            ]
+          },
+          {
+            "group": "Blockchain",
+            "pages": [
+              "api/blockchain/blocks",
+              "api/blockchain/transactions",
+              "api/blockchain/addresses",
+              "api/blockchain/difficulty"
+            ]
+          },
+          {
+            "group": "Mempool",
+            "pages": [
+              "api/mempool/overview",
+              "api/mempool/fees",
+              "api/mempool/rbf",
+              "api/mempool/cpfp"
+            ]
+          },
+          {
+            "group": "Mining",
+            "pages": [
+              "api/mining/pools",
+              "api/mining/hashrate",
+              "api/mining/rewards",
+              "api/mining/difficulty-adjustment"
+            ]
+          },
+          {
+            "group": "Lightning Network",
+            "pages": [
+              "api/lightning/nodes",
+              "api/lightning/channels",
+              "api/lightning/statistics"
+            ]
+          },
+          {
+            "group": "Services",
+            "pages": [
+              "api/services/acceleration",
+              "api/services/prices",
+              "api/services/websocket"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Real-time mempool visualization",
+    "Bitcoin blockchain explorer",
+    "Fee estimation and recommendations",
+    "Mining pool statistics and hashrate tracking",
+    "Lightning Network explorer",
+    "Transaction acceleration services",
+    "WebSocket API for live updates",
+    "Self-hostable on Raspberry Pi and full nodes",
+    "Support for Bitcoin, Liquid, and testnets",
+    "RBF and CPFP transaction tracking"
+  ],
+  "publicApiSurface": [
+    "GET /api/v1/blocks",
+    "GET /api/v1/tx/:txId",
+    "GET /api/v1/address/:address",
+    "GET /api/v1/fees/recommended",
+    "GET /api/v1/fees/mempool-blocks",
+    "GET /api/v1/mining/pools",
+    "GET /api/v1/mining/hashrate",
+    "GET /api/v1/lightning/nodes",
+    "GET /api/v1/lightning/channels",
+    "GET /api/v1/prices",
+    "GET /api/v1/difficulty-adjustment",
+    "GET /api/v1/tx/:txId/rbf",
+    "GET /api/v1/cpfp/:txId",
+    "POST /api/v1/tx/push",
+    "WebSocket /api/v1/ws"
+  ]
+}
