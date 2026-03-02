@@ -1,0 +1,393 @@
+---
+title: 'Development Setup'
+description: 'Get your local Mempool development environment up and running'
+icon: 'laptop-code'
+---
+
+This guide walks you through setting up a local development environment for Mempool. You can run just the frontend (proxied to production backend) or a complete stack with backend and frontend.
+
+## Quick Frontend Setup
+
+If you want to quickly improve the UI, fix typos, or make other updates that don't require backend changes, you can run the frontend locally and proxy to the mempool.space backend.
+
+<Steps>
+  <Step title="Clone the Repository">
+    Get the latest Mempool code:
+
+    ```bash
+    git clone https://github.com/mempool/mempool
+    cd mempool/frontend
+    ```
+
+    Check out the latest release:
+
+    ```bash
+    latestrelease=$(curl -s https://api.github.com/repos/mempool/mempool/releases/latest|grep tag_name|head -1|cut -d '"' -f4)
+    git checkout $latestrelease
+    ```
+  </Step>
+
+  <Step title="Configure the Site">
+    The same frontend codebase is used for both mempool.space and liquid.network.
+
+    Configure for your target site:
+
+    <Tabs>
+      <Tab title="Mempool">
+        ```bash
+        npm run config:defaults:mempool
+        ```
+      </Tab>
+      <Tab title="Liquid">
+        ```bash
+        npm run config:defaults:liquid
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Install Dependencies">
+    <Note>
+      Ensure you have **Node.js 20.x** and **npm 9.x** or newer installed.
+    </Note>
+
+    ```bash
+    npm install
+    ```
+  </Step>
+
+  <Step title="Start the Development Server">
+    Run the frontend with production backend proxy:
+
+    ```bash
+    npm run serve:local-prod
+    ```
+
+    The frontend will be available at `http://localhost:4200/` with all API requests proxied to https://mempool.space.
+  </Step>
+</Steps>
+
+---
+
+## Full Stack Setup
+
+For backend development or running a complete local instance, follow these steps to set up both backend and frontend.
+
+<Note>
+  These instructions are intended for developers. For production deployments, see the [installation methods](https://github.com/mempool/mempool#installation-methods) in the main README.
+</Note>
+
+### Backend Setup
+
+<Steps>
+  <Step title="Clone the Repository">
+    ```bash
+    git clone https://github.com/mempool/mempool
+    cd mempool
+    ```
+
+    Checkout the latest release:
+    ```bash
+    latestrelease=$(curl -s https://api.github.com/repos/mempool/mempool/releases/latest|grep tag_name|head -1|cut -d '"' -f4)
+    git checkout $latestrelease
+    ```
+  </Step>
+
+  <Step title="Configure Bitcoin Core">
+    Enable `txindex`, RPC, and set credentials in `bitcoin.conf`:
+
+    ```ini
+    txindex=1
+    server=1
+    rpcuser=mempool
+    rpcpassword=mempool
+    ```
+
+    Restart Bitcoin Core after making these changes.
+  </Step>
+
+  <Step title="Configure Electrum Server (Optional)">
+    [Pick an Electrum Server implementation](https://mempool.space/docs/faq#address-lookup-issues), configure it, and ensure it's synced.
+
+    <Warning>
+      You can run Mempool without an Electrum Server, but **address lookups will be disabled**.
+    </Warning>
+
+    Supported implementations:
+    - [romanz/electrs](https://github.com/romanz/electrs)
+    - [cculianu/Fulcrum](https://github.com/cculianu/Fulcrum)
+    - [mempool/electrs](https://github.com/mempool/electrs) (Esplora mode)
+  </Step>
+
+  <Step title="Set Up MariaDB">
+    <Note>
+      Mempool requires **MariaDB v10.5 or later**. If you have MySQL installed, migrate any existing databases before installing MariaDB.
+    </Note>
+
+    Install MariaDB:
+
+    <CodeGroup>
+      ```bash Debian/Ubuntu
+      apt-get install mariadb-server mariadb-client
+      ```
+
+      ```bash macOS
+      brew install mariadb
+      mysql.server start
+      ```
+    </CodeGroup>
+
+    Create database and grant privileges:
+
+    ```sql
+    MariaDB [(none)]> create database mempool;
+    Query OK, 1 row affected (0.00 sec)
+
+    MariaDB [(none)]> grant all privileges on mempool.* to 'mempool'@'%' identified by 'mempool';
+    Query OK, 0 rows affected (0.00 sec)
+    ```
+  </Step>
+
+  <Step title="Build the Backend">
+    <Note>
+      - Node.js 20.x and npm 9.x or newer required
+      - [Rust](https://www.rust-lang.org/tools/install) must be installed
+    </Note>
+
+    ```bash
+    cd backend
+    npm install --no-install-links
+    npm run build
+    ```
+  </Step>
+
+  <Step title="Configure the Backend">
+    Create your configuration file:
+
+    ```bash
+    cp mempool-config.sample.json mempool-config.json
+    ```
+
+    Edit `mempool-config.json` to set:
+
+    - **Bitcoin Core RPC credentials** in `CORE_RPC` section
+    - **Electrum backend type** in `MEMPOOL.BACKEND`:
+      - `"electrum"` for romanz/electrs or Fulcrum
+      - `"esplora"` for mempool/electrs
+      - `"none"` if not using Electrum
+  </Step>
+
+  <Step title="Start the Backend">
+    Run the Mempool backend:
+
+    ```bash
+    npm run start
+    ```
+
+    To specify a custom config file location:
+
+    ```bash
+    MEMPOOL_CONFIG_FILE=/path/to/mempool-config.json npm run start
+    ```
+
+    When running successfully, you should see output like:
+
+    ```
+    Mempool updated in 0.189 seconds
+    Updating mempool
+    Calculated fee for transaction 1 / 10
+    Calculated fee for transaction 2 / 10
+    ...
+    ```
+  </Step>
+</Steps>
+
+### Frontend Setup
+
+<Steps>
+  <Step title="Install Dependencies">
+    With the backend running, navigate to the frontend directory:
+
+    ```bash
+    cd ../frontend
+    npm install
+    ```
+  </Step>
+
+  <Step title="Build the Frontend">
+    For production build:
+
+    ```bash
+    npm run build
+    ```
+
+    For development with hot reload:
+
+    ```bash
+    npm run serve
+    ```
+
+    The frontend will connect to your local backend at `http://localhost:4200/`.
+  </Step>
+</Steps>
+
+---
+
+## Development Workflows
+
+### Backend Development with Watchers
+
+The backend is static TypeScript compiled to the `dist` folder. To avoid manual shutdown/recompile/restart cycles, set up watchers:
+
+<Steps>
+  <Step title="Install Tools">
+    ```bash
+    npm install -g ts-node nodemon
+    ```
+  </Step>
+
+  <Step title="Run Watcher">
+    ```bash
+    cd backend
+    nodemon src/index.ts --ignore cache/
+    ```
+
+    <Note>
+      `nodemon` should be in npm's global binary folder. Find it with `npm -g bin` if needed.
+    </Note>
+  </Step>
+</Steps>
+
+### Frontend Development Variants
+
+The frontend can run in different modes:
+
+<Tabs>
+  <Tab title="Local Backend">
+    Connect to your local backend:
+    ```bash
+    npm run serve
+    ```
+  </Tab>
+
+  <Tab title="Production Proxy">
+    Proxy to production backend:
+    ```bash
+    npm run serve:local-prod
+    ```
+  </Tab>
+
+  <Tab title="Esplora Backend">
+    Use local Esplora backend:
+    ```bash
+    npm run start:local-esplora
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Regtest Development
+
+Useful for testing without mainnet data.
+
+<AccordionGroup>
+  <Accordion title="Start Bitcoin Core in Regtest Mode">
+    ```bash
+    bitcoind -regtest
+    ```
+  </Accordion>
+
+  <Accordion title="Create and Load Wallet">
+    ```bash
+    # Create wallet
+    bitcoin-cli -regtest createwallet test
+
+    # Load wallet
+    bitcoin-cli -regtest loadwallet test
+    ```
+  </Accordion>
+
+  <Accordion title="Generate Blocks">
+    ```bash
+    # Get new address
+    address=$(bitcoin-cli -regtest getnewaddress)
+
+    # Mine 101 blocks (needed before spending)
+    bitcoin-cli -regtest generatetoaddress 101 $address
+    ```
+  </Accordion>
+
+  <Accordion title="Send Test Transactions">
+    ```bash
+    # Send 0.1 BTC at 5 sat/vB
+    bitcoin-cli -named -regtest sendtoaddress \
+      address=$(bitcoin-cli -regtest getnewaddress) \
+      amount=0.1 \
+      fee_rate=5
+    ```
+  </Accordion>
+
+  <Accordion title="Auto-Generate Blocks">
+    Generate blocks at regular intervals:
+    ```bash
+    # Every 10 seconds
+    watch -n 10 "bitcoin-cli -regtest generatetoaddress 1 $address"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Advanced Configuration
+
+### Mining Pools Update
+
+By default, mining pools are not automatically updated. To manually update:
+
+```bash
+npm run start --update-pools
+```
+
+This triggers mining pool updates and re-indexes appropriate blocks.
+
+To enable automatic updates, set in `mempool-config.json`:
+
+```json
+{
+  "MEMPOOL": {
+    "AUTOMATIC_POOLS_UPDATE": true
+  }
+}
+```
+
+### Re-index Tables
+
+Manually force re-indexing of specific tables:
+
+```bash
+npm run start --reindex=blocks,hashrates
+```
+
+<Warning>
+  A 5-second delay is observed before truncating tables to prevent accidental data loss.
+</Warning>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="diagram-project" href="/development/architecture">
+    Learn about Mempool's system architecture
+  </Card>
+  <Card title="Testing" icon="vial" href="/development/testing">
+    Run tests and ensure code quality
+  </Card>
+  <Card title="Contributing" icon="code-pull-request" href="/development/contributing">
+    Submit your first contribution
+  </Card>
+  <Card title="API Documentation" icon="book" href="/api/introduction">
+    Explore the Mempool API
+  </Card>
+</CardGroup>

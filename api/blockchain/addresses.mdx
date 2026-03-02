@@ -1,0 +1,498 @@
+---
+title: 'Addresses'
+description: 'API endpoints for retrieving Bitcoin address information'
+---
+
+## Get Address
+
+Retrieve information about a Bitcoin address including balance and transaction statistics.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/address/1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+```
+
+```javascript JavaScript
+const address = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa';
+const response = await fetch(`https://mempool.space/api/v1/address/${address}`);
+const addressInfo = await response.json();
+console.log(addressInfo);
+```
+
+```python Python
+import requests
+
+address = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'
+response = requests.get(f'https://mempool.space/api/v1/address/{address}')
+address_info = response.json()
+print(address_info)
+```
+</CodeGroup>
+
+<ParamField path="address" type="string" required>
+  Bitcoin address (any format: P2PKH, P2SH, Bech32, Bech32m)
+</ParamField>
+
+<ResponseField name="address" type="string">
+  The Bitcoin address
+</ResponseField>
+
+<ResponseField name="chain_stats" type="ChainStats">
+  On-chain statistics for the address
+  
+  <Expandable title="ChainStats Fields">
+    <ResponseField name="funded_txo_count" type="number">
+      Number of funded transaction outputs
+    </ResponseField>
+    
+    <ResponseField name="funded_txo_sum" type="number">
+      Total amount received in satoshis
+    </ResponseField>
+    
+    <ResponseField name="spent_txo_count" type="number">
+      Number of spent transaction outputs
+    </ResponseField>
+    
+    <ResponseField name="spent_txo_sum" type="number">
+      Total amount spent in satoshis
+    </ResponseField>
+    
+    <ResponseField name="tx_count" type="number">
+      Total number of transactions
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="mempool_stats" type="MempoolStats">
+  Mempool statistics for the address
+  
+  <Expandable title="MempoolStats Fields">
+    <ResponseField name="funded_txo_count" type="number">
+      Number of unconfirmed funded outputs
+    </ResponseField>
+    
+    <ResponseField name="funded_txo_sum" type="number">
+      Total unconfirmed amount received in satoshis
+    </ResponseField>
+    
+    <ResponseField name="spent_txo_count" type="number">
+      Number of unconfirmed spent outputs
+    </ResponseField>
+    
+    <ResponseField name="spent_txo_sum" type="number">
+      Total unconfirmed amount spent in satoshis
+    </ResponseField>
+    
+    <ResponseField name="tx_count" type="number">
+      Number of unconfirmed transactions
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<Note>
+  This endpoint is only available when using an Esplora backend (not Bitcoin Core RPC).
+</Note>
+
+---
+
+## Get Address Transactions
+
+Retrieve the list of transactions for a Bitcoin address.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/address/1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa/txs"
+```
+
+```javascript JavaScript
+const address = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa';
+const response = await fetch(`https://mempool.space/api/v1/address/${address}/txs`);
+const transactions = await response.json();
+console.log(transactions);
+```
+
+```python Python
+import requests
+
+address = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'
+response = requests.get(f'https://mempool.space/api/v1/address/{address}/txs')
+transactions = response.json()
+print(transactions)
+```
+</CodeGroup>
+
+<ParamField path="address" type="string" required>
+  Bitcoin address (any format: P2PKH, P2SH, Bech32, Bech32m)
+</ParamField>
+
+<ParamField query="after_txid" type="string" optional>
+  Transaction ID to paginate from (for subsequent pages)
+</ParamField>
+
+<ResponseField name="transactions" type="Transaction[]">
+  Array of transaction objects (up to 25 per request)
+  
+  <Expandable title="Transaction Fields">
+    <ResponseField name="txid" type="string">
+      Transaction ID
+    </ResponseField>
+    
+    <ResponseField name="version" type="number">
+      Transaction version
+    </ResponseField>
+    
+    <ResponseField name="locktime" type="number">
+      Transaction locktime
+    </ResponseField>
+    
+    <ResponseField name="size" type="number">
+      Transaction size in bytes
+    </ResponseField>
+    
+    <ResponseField name="weight" type="number">
+      Transaction weight
+    </ResponseField>
+    
+    <ResponseField name="fee" type="number">
+      Transaction fee in satoshis
+    </ResponseField>
+    
+    <ResponseField name="vin" type="Vin[]">
+      Array of inputs
+    </ResponseField>
+    
+    <ResponseField name="vout" type="Vout[]">
+      Array of outputs
+    </ResponseField>
+    
+    <ResponseField name="status" type="Status">
+      Confirmation status
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<Note>
+  Returns up to 25 transactions per request. Use the `after_txid` parameter to paginate through results.
+</Note>
+
+---
+
+## Get Address Transactions Summary
+
+Retrieve a condensed summary of transactions for an address (requires Esplora backend).
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/address/1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa/txs/summary"
+```
+
+```javascript JavaScript
+const address = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa';
+const response = await fetch(`https://mempool.space/api/v1/address/${address}/txs/summary`);
+const summary = await response.json();
+console.log(summary);
+```
+
+```python Python
+import requests
+
+address = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'
+response = requests.get(f'https://mempool.space/api/v1/address/{address}/txs/summary')
+summary = response.json()
+print(summary)
+```
+</CodeGroup>
+
+<ParamField path="address" type="string" required>
+  Bitcoin address (any format: P2PKH, P2SH, Bech32, Bech32m)
+</ParamField>
+
+<ParamField query="after_txid" type="string" optional>
+  Transaction ID to paginate from
+</ParamField>
+
+<ResponseField name="summary" type="TxSummary[]">
+  Array of transaction summary objects
+  
+  <Expandable title="TxSummary Fields">
+    <ResponseField name="txid" type="string">
+      Transaction ID
+    </ResponseField>
+    
+    <ResponseField name="value" type="number">
+      Net value change for the address in satoshis (positive for incoming, negative for outgoing)
+    </ResponseField>
+    
+    <ResponseField name="height" type="number">
+      Block height (0 for unconfirmed)
+    </ResponseField>
+    
+    <ResponseField name="time" type="number">
+      Transaction timestamp
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<Note>
+  This endpoint requires an Esplora backend and provides a more efficient way to retrieve transaction history.
+</Note>
+
+---
+
+## Get Address UTXOs
+
+Retrieve the unspent transaction outputs (UTXOs) for a Bitcoin address.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/address/1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa/utxo"
+```
+
+```javascript JavaScript
+const address = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa';
+const response = await fetch(`https://mempool.space/api/v1/address/${address}/utxo`);
+const utxos = await response.json();
+console.log(utxos);
+```
+
+```python Python
+import requests
+
+address = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'
+response = requests.get(f'https://mempool.space/api/v1/address/{address}/utxo')
+utxos = response.json()
+print(utxos)
+```
+</CodeGroup>
+
+<ParamField path="address" type="string" required>
+  Bitcoin address (any format: P2PKH, P2SH, Bech32, Bech32m)
+</ParamField>
+
+<ResponseField name="utxos" type="UTXO[]">
+  Array of unspent transaction outputs
+  
+  <Expandable title="UTXO Fields">
+    <ResponseField name="txid" type="string">
+      Transaction ID
+    </ResponseField>
+    
+    <ResponseField name="vout" type="number">
+      Output index
+    </ResponseField>
+    
+    <ResponseField name="value" type="number">
+      Output value in satoshis
+    </ResponseField>
+    
+    <ResponseField name="status" type="Status">
+      Confirmation status of the transaction
+      
+      <Expandable title="Status Fields">
+        <ResponseField name="confirmed" type="boolean">
+          Whether the UTXO is confirmed
+        </ResponseField>
+        
+        <ResponseField name="block_height" type="number">
+          Block height (if confirmed)
+        </ResponseField>
+        
+        <ResponseField name="block_hash" type="string">
+          Block hash (if confirmed)
+        </ResponseField>
+        
+        <ResponseField name="block_time" type="number">
+          Block timestamp (if confirmed)
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<Note>
+  This endpoint returns both confirmed and unconfirmed UTXOs. Check the `status.confirmed` field to distinguish between them.
+</Note>
+
+---
+
+## Validate Address
+
+Validate a Bitcoin address and retrieve detailed information about it.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/validate-address/1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+```
+
+```javascript JavaScript
+const address = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa';
+const response = await fetch(`https://mempool.space/api/v1/validate-address/${address}`);
+const validation = await response.json();
+console.log(validation);
+```
+
+```python Python
+import requests
+
+address = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'
+response = requests.get(f'https://mempool.space/api/v1/validate-address/{address}')
+validation = response.json()
+print(validation)
+```
+</CodeGroup>
+
+<ParamField path="address" type="string" required>
+  Bitcoin address to validate
+</ParamField>
+
+<ResponseField name="isvalid" type="boolean">
+  Whether the address is valid
+</ResponseField>
+
+<ResponseField name="address" type="string">
+  The validated address
+</ResponseField>
+
+<ResponseField name="scriptPubKey" type="string">
+  The script pubkey (hex)
+</ResponseField>
+
+<ResponseField name="isscript" type="boolean">
+  Whether this is a script address (P2SH)
+</ResponseField>
+
+<ResponseField name="iswitness" type="boolean">
+  Whether this is a witness address (segwit)
+</ResponseField>
+
+<ResponseField name="witness_version" type="number">
+  Witness version (for segwit addresses)
+</ResponseField>
+
+<ResponseField name="witness_program" type="string">
+  Witness program (for segwit addresses)
+</ResponseField>
+
+---
+
+## Get Script Hash
+
+Retrieve information about a script hash (Electrum-style).
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/scripthash/8b01df4e368ea28f8dc0423bcf7a4923e3a12d307c875e47a0cfbf90b5c39161"
+```
+
+```javascript JavaScript
+const scripthash = '8b01df4e368ea28f8dc0423bcf7a4923e3a12d307c875e47a0cfbf90b5c39161';
+const response = await fetch(`https://mempool.space/api/v1/scripthash/${scripthash}`);
+const info = await response.json();
+console.log(info);
+```
+
+```python Python
+import requests
+
+scripthash = '8b01df4e368ea28f8dc0423bcf7a4923e3a12d307c875e47a0cfbf90b5c39161'
+response = requests.get(f'https://mempool.space/api/v1/scripthash/{scripthash}')
+info = response.json()
+print(info)
+```
+</CodeGroup>
+
+<ParamField path="scripthash" type="string" required>
+  Script hash (big-endian hex string)
+</ParamField>
+
+<ResponseField name="scripthash" type="string">
+  The script hash
+</ResponseField>
+
+<ResponseField name="chain_stats" type="ChainStats">
+  On-chain statistics (same structure as address)
+</ResponseField>
+
+<ResponseField name="mempool_stats" type="MempoolStats">
+  Mempool statistics (same structure as address)
+</ResponseField>
+
+<Note>
+  Script hashes should be provided in big-endian format. Electrum uses little-endian internally, so you may need to reverse the byte order.
+</Note>
+
+---
+
+## Get Script Hash Transactions
+
+Retrieve transactions for a script hash.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/scripthash/8b01df4e368ea28f8dc0423bcf7a4923e3a12d307c875e47a0cfbf90b5c39161/txs"
+```
+
+```javascript JavaScript
+const scripthash = '8b01df4e368ea28f8dc0423bcf7a4923e3a12d307c875e47a0cfbf90b5c39161';
+const response = await fetch(`https://mempool.space/api/v1/scripthash/${scripthash}/txs`);
+const transactions = await response.json();
+console.log(transactions);
+```
+
+```python Python
+import requests
+
+scripthash = '8b01df4e368ea28f8dc0423bcf7a4923e3a12d307c875e47a0cfbf90b5c39161'
+response = requests.get(f'https://mempool.space/api/v1/scripthash/{scripthash}/txs')
+transactions = response.json()
+print(transactions)
+```
+</CodeGroup>
+
+<ParamField path="scripthash" type="string" required>
+  Script hash (big-endian hex string)
+</ParamField>
+
+<ParamField query="after_txid" type="string" optional>
+  Transaction ID to paginate from
+</ParamField>
+
+<ResponseField name="transactions" type="Transaction[]">
+  Array of transaction objects (same structure as address transactions endpoint)
+</ResponseField>
+
+---
+
+## Get Script Hash UTXOs
+
+Retrieve unspent transaction outputs for a script hash.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/scripthash/8b01df4e368ea28f8dc0423bcf7a4923e3a12d307c875e47a0cfbf90b5c39161/utxo"
+```
+
+```javascript JavaScript
+const scripthash = '8b01df4e368ea28f8dc0423bcf7a4923e3a12d307c875e47a0cfbf90b5c39161';
+const response = await fetch(`https://mempool.space/api/v1/scripthash/${scripthash}/utxo`);
+const utxos = await response.json();
+console.log(utxos);
+```
+
+```python Python
+import requests
+
+scripthash = '8b01df4e368ea28f8dc0423bcf7a4923e3a12d307c875e47a0cfbf90b5c39161'
+response = requests.get(f'https://mempool.space/api/v1/scripthash/{scripthash}/utxo')
+utxos = response.json()
+print(utxos)
+```
+</CodeGroup>
+
+<ParamField path="scripthash" type="string" required>
+  Script hash (big-endian hex string)
+</ParamField>
+
+<ResponseField name="utxos" type="UTXO[]">
+  Array of unspent transaction outputs (same structure as address UTXOs endpoint)
+</ResponseField>

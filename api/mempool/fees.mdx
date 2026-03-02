@@ -1,0 +1,191 @@
+---
+title: 'Fee Endpoints'
+description: 'Get recommended transaction fees and mempool block projections'
+---
+
+## Get Recommended Fees
+
+<CodeGroup>
+```bash curl
+curl "https://mempool.space/api/v1/fees/recommended"
+```
+</CodeGroup>
+
+<RequestExample>
+```bash Request
+GET /api/v1/fees/recommended
+```
+</RequestExample>
+
+Returns recommended fee rates in sat/vB for different confirmation priorities.
+
+### Response
+
+<ResponseField name="fastestFee" type="number" required>
+  Fee rate for next-block confirmation (sat/vB)
+</ResponseField>
+
+<ResponseField name="halfHourFee" type="number" required>
+  Fee rate for ~30 minute confirmation (sat/vB)
+</ResponseField>
+
+<ResponseField name="hourFee" type="number" required>
+  Fee rate for ~1 hour confirmation (sat/vB)
+</ResponseField>
+
+<ResponseField name="economyFee" type="number" required>
+  Fee rate for low-priority transactions (sat/vB)
+</ResponseField>
+
+<ResponseField name="minimumFee" type="number" required>
+  Minimum fee rate to stay in mempool (sat/vB)
+</ResponseField>
+
+<ResponseExample>
+```json Response Example
+{
+  "fastestFee": 25,
+  "halfHourFee": 20,
+  "hourFee": 15,
+  "economyFee": 10,
+  "minimumFee": 1
+}
+```
+</ResponseExample>
+
+### Fee Calculation
+
+Fees are calculated by analyzing the current mempool and projecting block templates. The algorithm:
+
+1. Projects the next 3 mempool blocks using current mempool transactions
+2. Determines median fee rates for each projected block
+3. Applies minimum thresholds based on `mempoolminfee`
+4. Rounds values to the nearest whole sat/vB (or 0.1 for Liquid)
+
+### Precision Mode
+
+For more precise fee estimates with decimal precision:
+
+<CodeGroup>
+```bash curl
+curl "https://mempool.space/api/v1/fees/precise"
+```
+</CodeGroup>
+
+<RequestExample>
+```bash Request
+GET /api/v1/fees/precise
+```
+</RequestExample>
+
+Returns the same structure but with values rounded to 3 decimal places (0.001 sat/vB precision).
+
+### Service Availability
+
+This endpoint returns HTTP 503 if:
+- The mempool is not in sync with the Bitcoin network
+- Mempool data is still being loaded after startup
+
+---
+
+## Get Mempool Blocks
+
+<CodeGroup>
+```bash curl
+curl "https://mempool.space/api/v1/fees/mempool-blocks"
+```
+</CodeGroup>
+
+<RequestExample>
+```bash Request
+GET /api/v1/fees/mempool-blocks
+```
+</RequestExample>
+
+Returns an array of projected mempool blocks showing how current mempool transactions would be organized into blocks.
+
+### Response
+
+Returns an array of mempool block objects:
+
+<ResponseField name="blockSize" type="number" required>
+  Total size of the block in bytes
+</ResponseField>
+
+<ResponseField name="blockVSize" type="number" required>
+  Total virtual size of the block in vBytes
+</ResponseField>
+
+<ResponseField name="nTx" type="number" required>
+  Number of transactions in the projected block
+</ResponseField>
+
+<ResponseField name="totalFees" type="number" required>
+  Total fees in the block (satoshis)
+</ResponseField>
+
+<ResponseField name="medianFee" type="number" required>
+  Median fee rate in the block (sat/vB)
+</ResponseField>
+
+<ResponseField name="feeRange" type="array" required>
+  Array of fee rate percentiles [min, 10th, 25th, 50th, 75th, 90th, max] in sat/vB
+</ResponseField>
+
+<ResponseExample>
+```json Response Example
+[
+  {
+    "blockSize": 1234567,
+    "blockVSize": 998000,
+    "nTx": 2500,
+    "totalFees": 50000000,
+    "medianFee": 25,
+    "feeRange": [
+      15,
+      18,
+      22,
+      25,
+      30,
+      35,
+      50
+    ]
+  },
+  {
+    "blockSize": 1100000,
+    "blockVSize": 950000,
+    "nTx": 2200,
+    "totalFees": 40000000,
+    "medianFee": 20,
+    "feeRange": [
+      12,
+      15,
+      18,
+      20,
+      23,
+      27,
+      35
+    ]
+  }
+]
+```
+</ResponseExample>
+
+### Block Projection Algorithm
+
+Mempool blocks are projected using a block template algorithm that:
+
+1. Calculates effective fee rates considering CPFP relationships
+2. Sorts transactions by descending effective fee rate
+3. Selects transactions that fit within block weight limits (~4MB)
+4. Respects transaction dependencies (ancestors must be included before descendants)
+5. Accounts for sigop limits and other consensus rules
+
+The number of blocks projected is configurable (typically 8 blocks) via `MEMPOOL.MEMPOOL_BLOCKS_AMOUNT`.
+
+### Use Cases
+
+- **Fee estimation**: Analyze fee distribution across projected blocks
+- **Transaction prioritization**: Determine which block your transaction is likely to be in
+- **Mempool visualization**: Display mempool congestion and fee markets
+- **Batch processing**: Optimize timing for large transactions based on mempool state

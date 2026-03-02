@@ -1,0 +1,140 @@
+---
+title: Introduction to Mempool
+description: The fully-featured mempool visualizer, explorer, and API service for the Bitcoin community
+---
+
+# Welcome to Mempool
+
+Mempool is the fully-featured mempool visualizer, explorer, and API service running at [mempool.space](https://mempool.space/).
+
+It is an open-source project developed and operated for the benefit of the Bitcoin community, with a focus on the emerging transaction fee market that is evolving Bitcoin into a multi-layer ecosystem.
+
+<Note>
+  Mempool is designed to be self-hosted on a wide variety of hardware, from a simple one-click installation on a Raspberry Pi to a robust production instance on a powerful server.
+</Note>
+
+## What is Mempool?
+
+Mempool provides real-time visualization and analysis of Bitcoin's transaction mempool, allowing users to:
+
+- **Monitor Transaction Flow**: View incoming transactions and their fee rates in real-time
+- **Analyze Fee Markets**: Understand the current fee market dynamics with projected block positioning
+- **Explore Blockchain Data**: Search and explore transactions, blocks, and addresses
+- **Access Mining Data**: View mining pool statistics and historical block data
+- **Track Lightning Network**: Monitor Lightning Network nodes and channels (when enabled)
+- **Use REST API**: Integrate Bitcoin data into your applications with a comprehensive API
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Real-time Mempool Visualization" icon="chart-line">
+    Watch transactions flow through the mempool with an intuitive visual representation of fee rates and transaction priorities.
+  </Card>
+  
+  <Card title="Block Explorer" icon="cube">
+    Search and explore transactions, blocks, and addresses with detailed information and historical data.
+  </Card>
+  
+  <Card title="Mining Dashboard" icon="hammer">
+    Track mining pools, hashrate distribution, and block templates. View CPFP (Child Pays For Parent) relationships.
+  </Card>
+  
+  <Card title="Fee Estimation" icon="calculator">
+    Get accurate fee recommendations based on real-time mempool analysis and historical block data.
+  </Card>
+  
+  <Card title="Lightning Network Explorer" icon="bolt">
+    Explore the Lightning Network topology, nodes, channels, and statistics (optional feature).
+  </Card>
+  
+  <Card title="REST API" icon="code">
+    Integrate Mempool data into your applications with a comprehensive, well-documented REST API.
+  </Card>
+</CardGroup>
+
+## Powered by Open Source
+
+Mempool is built on proven open-source technologies:
+
+- **Bitcoin Core**: Direct RPC connection to Bitcoin Core for transaction and block data
+- **Electrum Server**: Optional integration with Electrum implementations (electrs, Fulcrum, or Esplora) for address lookups
+- **MariaDB**: Database storage for historical data and statistics
+- **Node.js & TypeScript**: High-performance backend API
+- **Angular**: Modern, responsive frontend interface
+
+## Self-Hosting Options
+
+<CardGroup cols={2}>
+  <Card title="One-Click Installation" icon="mouse-pointer" href="/quickstart">
+    Deploy on Umbrel, RaspiBlitz, RoninDojo, myNode, StartOS, or nix-bitcoin with a single click.
+  </Card>
+  
+  <Card title="Docker Deployment" icon="docker">
+    Use Docker Compose for a containerized deployment with Bitcoin Core and Electrum Server.
+  </Card>
+  
+  <Card title="Manual Installation" icon="terminal">
+    Build from source for development or custom production deployments with full control.
+  </Card>
+  
+  <Card title="Mempool Enterprise" icon="building">
+    Get professional support and managed hosting from the Mempool team at mempool.space/enterprise.
+  </Card>
+</CardGroup>
+
+## Why Self-Host?
+
+Running your own Mempool instance provides several benefits:
+
+- **Privacy**: Query blockchain data without revealing your addresses to third parties
+- **Reliability**: No dependency on external services or rate limits
+- **Customization**: Configure features and data sources to match your needs
+- **Learning**: Understand Bitcoin's mempool mechanics and fee market dynamics
+- **Integration**: Build applications that rely on blockchain data with full control
+
+<Warning>
+  While Mempool can be self-hosted, it requires Bitcoin Core with `txindex=1` enabled and sufficient storage for blockchain data. Consider your hardware requirements before deployment.
+</Warning>
+
+## Network Support
+
+Mempool supports multiple Bitcoin networks:
+
+- **Bitcoin Mainnet**: Production Bitcoin network
+- **Bitcoin Testnet**: Test network for development
+- **Bitcoin Testnet4**: New test network with improved features
+- **Bitcoin Signet**: Controlled test network
+- **Bitcoin Regtest**: Local development network
+- **Liquid Network**: Sidechain support with dedicated configuration
+
+## Community and Enterprise
+
+Mempool is developed by The Mempool Open Source Project® and operates the public instance at mempool.space. For production deployments requiring support, the team offers [Mempool Enterprise®](https://mempool.space/enterprise), which provides:
+
+- Managed hosting on global ISP infrastructure
+- Professional support and SLAs
+- Custom deployment assistance
+- Priority feature development
+
+## Get Started
+
+<Card title="Quick Start Guide" icon="rocket" href="/quickstart">
+  Get your Mempool instance running in minutes with our comprehensive quick start guide.
+</Card>
+
+## Configuration and API
+
+Mempool offers extensive configuration options for:
+
+- **Backend Selection**: Choose between Electrum, Esplora, or Bitcoin Core only
+- **Feature Toggles**: Enable mining statistics, CPFP indexing, Lightning Network support
+- **Performance Tuning**: Configure polling rates, cache settings, and cluster processes
+- **Network Settings**: Set up proxies, database connections, and external data sources
+
+All configuration can be managed through `mempool-config.json` or environment variables in Docker deployments.
+
+---
+
+<Note>
+  Ready to get started? Head over to the [Quick Start Guide](/quickstart) to deploy your own Mempool instance.
+</Note>

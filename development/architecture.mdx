@@ -1,0 +1,545 @@
+---
+title: "System Architecture"
+description: "Understanding Mempool's technical architecture and design patterns"
+icon: "diagram-project"
+---
+
+Mempool is a full-stack Bitcoin blockchain explorer and mempool visualizer built with modern web technologies. This guide provides an overview of the system architecture, components, and data flow.
+
+## Overview
+
+Mempool follows a client-server architecture with real-time data synchronization via WebSockets.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Frontend (Angular)                    │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │  Components  │  │   Services   │  │  WebSocket   │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘     │
+└────────────────────────┬────────────────────────────────────┘
+                         │ HTTP/WebSocket
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Backend (Node.js/Express/TypeScript)            │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │  REST API    │  │  WebSocket   │  │   Indexer    │     │
+│  │   Routes     │  │   Handler    │  │              │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘     │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │  Statistics  │  │ Mining Pool  │  │  Lightning   │     │
+│  │   Engine     │  │   Tracker    │  │   Network    │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘     │
+└────────────────────────┬───────────────┬────────────────────┘
+                         │               │
+              ┌──────────┴──────┐   ┌───┴────────┐
+              ▼                 ▼   ▼            ▼
+        ┌──────────┐      ┌──────────────┐  ┌─────────┐
+        │ Bitcoin  │      │   Electrum   │  │ MariaDB │
+        │   Core   │      │    Server    │  │Database │
+        └──────────┘      └──────────────┘  └─────────┘
+```
+
+---
+
+## Backend Architecture
+
+The Mempool backend is built with **Node.js**, **Express**, and **TypeScript**, providing a robust API and real-time data processing.
+
+### Core Components
+
+<AccordionGroup>
+  <Accordion title="API Layer" icon="route">
+    The REST API is organized into domain-specific routes:
+
+    - **Bitcoin Routes** (`backend/src/api/bitcoin/bitcoin.routes.ts`): Core blockchain data
+    - **Mining Routes** (`backend/src/api/mining/mining-routes.ts`): Mining statistics and pools
+    - **Lightning Routes** (`backend/src/api/explorer/`): Lightning Network data
+    - **Statistics Routes** (`backend/src/api/statistics/statistics.routes.ts`): Historical stats
+    - **Liquid Routes** (`backend/src/api/liquid/liquid.routes.ts`): Liquid sidechain data
+    - **Acceleration Routes** (`backend/src/api/acceleration/`): Transaction acceleration services
+
+    All routes are mounted in `backend/src/index.ts`.
+  </Accordion>
+
+  <Accordion title="WebSocket Handler" icon="tower-broadcast">
+    Real-time updates are delivered via WebSocket connections:
+
+    **File**: `backend/src/api/websocket-handler.ts`
+
+    ```typescript
+    // WebSocket message types
+    - 'want': Subscribe to specific data streams
+    - 'init': Initial connection data
+    - 'mempool-blocks': Projected mempool blocks
+    - 'live-2h-chart': Real-time fee chart data
+    - 'stats': Mempool statistics
+    - 'block': New block notifications
+    ```
+
+    Clients subscribe to specific data streams and receive updates as blockchain state changes.
+  </Accordion>
+
+  <Accordion title="Mempool Engine" icon="memory">
+    The core mempool processing engine tracks and analyzes unconfirmed transactions:
+
+    **File**: `backend/src/api/mempool.ts`
+
+    Key responsibilities:
+    - Parse mempool transactions from Bitcoin Core
+    - Calculate effective fee rates
+    - Build mempool blocks (fee-based transaction clusters)
+    - Track transaction dependencies
+    - Update statistics and charts
+
+    Updates run continuously in a polling loop.
+  </Accordion>
+
+  <Accordion title="Blocks Module" icon="cube">
+    Handles block processing and historical data:
+
+    **File**: `backend/src/api/blocks.ts`
+
+    - Fetches new blocks from Bitcoin Core
+    - Calculates block statistics (fees, transactions, weight)
+    - Identifies mining pools
+    - Stores block data in database
+    - Manages blockchain reorganizations
+  </Accordion>
+
+  <Accordion title="Indexer" icon="database">
+    Background service for indexing blockchain data:
+
+    **File**: `backend/src/indexer.ts`
+
+    - Re-indexes historical blocks
+    - Updates mining pool assignments
+    - Rebuilds statistics tables
+    - Handles data migrations
+  </Accordion>
+
+  <Accordion title="Statistics Engine" icon="chart-line">
+    Aggregates and processes blockchain statistics:
+
+    **File**: `backend/src/api/statistics/statistics.ts`
+
+    - Fee rate percentiles
+    - Transaction volume
+    - Mempool size over time
+    - Mining statistics
+    - Network difficulty and hashrate
+  </Accordion>
+</AccordionGroup>
+
+### Backend Directory Structure
+
+```
+backend/
+├── src/
+│   ├── api/                    # API endpoints and business logic
+│   │   ├── bitcoin/            # Bitcoin Core integration
+│   │   ├── mining/             # Mining pool tracking
+│   │   ├── explorer/           # Lightning Network explorer
+│   │   ├── statistics/         # Stats aggregation
+│   │   ├── liquid/             # Liquid sidechain support
+│   │   ├── acceleration/       # Transaction acceleration
+│   │   ├── blocks.ts           # Block processing
+│   │   ├── mempool.ts          # Mempool engine
+│   │   ├── websocket-handler.ts # WebSocket connections
+│   │   └── disk-cache.ts       # Disk-based caching
+│   ├── repositories/           # Database access layer
+│   ├── tasks/                  # Background jobs
+│   │   ├── lightning/          # Lightning Network sync
+│   │   ├── pools-updater.ts    # Mining pool updates
+│   │   └── price-updater.ts    # Price feed updates
+│   ├── utils/                  # Helper functions
+│   ├── config.ts               # Configuration management
+│   ├── database.ts             # Database connection
+│   ├── index.ts                # Application entry point
+│   └── logger.ts               # Logging utilities
+├── mempool-config.sample.json  # Configuration template
+└── package.json                # Dependencies and scripts
+```
+
+---
+
+## Frontend Architecture
+
+The Mempool frontend is built with **Angular 20**, providing a responsive and interactive user experience.
+
+### Core Technologies
+
+<CardGroup cols={2}>
+  <Card title="Angular 20" icon="angular">
+    Modern component-based framework with TypeScript
+  </Card>
+  <Card title="RxJS" icon="stream">
+    Reactive programming for data streams
+  </Card>
+  <Card title="ECharts" icon="chart-mixed">
+    Interactive data visualizations
+  </Card>
+  <Card title="Bootstrap 4" icon="bootstrap">
+    Responsive UI components
+  </Card>
+</CardGroup>
+
+### Frontend Directory Structure
+
+```
+frontend/
+├── src/
+│   ├── app/
+│   │   ├── components/         # UI components
+│   │   │   ├── master-page/    # Main layout
+│   │   │   ├── blockchain/     # Block explorer views
+│   │   │   ├── mempool-block/  # Mempool visualization
+│   │   │   ├── statistics/     # Charts and stats
+│   │   │   ├── mining/         # Mining dashboard
+│   │   │   └── lightning/      # Lightning Network explorer
+│   │   ├── services/           # Business logic and API clients
+│   │   │   ├── api.service.ts  # HTTP API client
+│   │   │   ├── websocket.service.ts # WebSocket client
+│   │   │   ├── state.service.ts # Application state
+│   │   │   └── price.service.ts # Price data
+│   │   ├── interfaces/         # TypeScript interfaces
+│   │   ├── shared/             # Shared utilities
+│   │   └── app.routes.ts       # Route configuration
+│   ├── resources/              # Static assets
+│   ├── locale/                 # i18n translations
+│   └── styles.scss             # Global styles
+├── cypress/                    # E2E tests
+└── package.json
+```
+
+### Key Frontend Services
+
+<Tabs>
+  <Tab title="API Service">
+    **File**: `frontend/src/app/services/api.service.ts`
+
+    Handles all HTTP requests to the backend:
+
+    ```typescript
+    // Example methods
+    getBlock(hash: string): Observable<Block>
+    getTransaction(txid: string): Observable<Transaction>
+    getAddressTransactions(address: string): Observable<Transaction[]>
+    getMempoolBlocks(): Observable<MempoolBlock[]>
+    ```
+  </Tab>
+
+  <Tab title="WebSocket Service">
+    **File**: `frontend/src/app/services/websocket.service.ts`
+
+    Manages WebSocket connections and real-time updates:
+
+    ```typescript
+    // Subscribe to data streams
+    want(data: string[]): void
+    
+    // Observable streams
+    blocks$: Observable<Block>
+    mempoolInfo$: Observable<MempoolInfo>
+    transactions$: Observable<Transaction>
+    ```
+  </Tab>
+
+  <Tab title="State Service">
+    **File**: `frontend/src/app/services/state.service.ts`
+
+    Central application state management:
+
+    ```typescript
+    // Global state observables
+    networkChanged$: Observable<string>
+    blocks$: Observable<Block[]>
+    conversions$: Observable<Conversions>
+    latestBlockHeight: number
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Database Schema
+
+Mempool uses **MariaDB** for persistent storage with a normalized schema.
+
+### Core Tables
+
+<AccordionGroup>
+  <Accordion title="blocks" icon="table">
+    Stores blockchain block data:
+
+    ```sql
+    - id (PRIMARY KEY)
+    - hash
+    - height
+    - timestamp
+    - size
+    - weight
+    - tx_count
+    - coinbase_raw
+    - difficulty
+    - pool_id (FOREIGN KEY)
+    - fees
+    - fee_span
+    - median_fee
+    - reward
+    ```
+  </Accordion>
+
+  <Accordion title="transactions" icon="table">
+    Transaction details:
+
+    ```sql
+    - txid (PRIMARY KEY)
+    - block_hash
+    - block_height
+    - block_time
+    - fee
+    - vsize
+    - is_coinbase
+    ```
+  </Accordion>
+
+  <Accordion title="pools" icon="table">
+    Mining pool information:
+
+    ```sql
+    - id (PRIMARY KEY)
+    - name
+    - link
+    - regexes
+    - addresses
+    ```
+  </Accordion>
+
+  <Accordion title="hashrates" icon="table">
+    Network and pool hashrate history:
+
+    ```sql
+    - hashrate_timestamp (PRIMARY KEY)
+    - avg_hashrate
+    - pool_id
+    - share
+    - type
+    ```
+  </Accordion>
+
+  <Accordion title="statistics" icon="table">
+    Mempool and network statistics:
+
+    ```sql
+    - id (PRIMARY KEY)
+    - added
+    - unconfirmed_transactions
+    - tx_per_second
+    - vbytes_per_second
+    - mempool_byte_weight
+    - total_fee
+    - fee_data (JSON)
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Data Flow
+
+Understanding how data flows through the system:
+
+<Steps>
+  <Step title="Bitcoin Core Sync">
+    The backend polls Bitcoin Core via RPC:
+
+    ```
+    Backend → Bitcoin Core RPC
+      ├─ getmempoolinfo()
+      ├─ getrawmempool(true)
+      ├─ getblock(hash)
+      └─ getrawtransaction(txid)
+    ```
+  </Step>
+
+  <Step title="Data Processing">
+    Raw data is processed and enriched:
+
+    - Calculate effective fee rates
+    - Identify mining pools
+    - Build mempool blocks
+    - Compute statistics
+  </Step>
+
+  <Step title="Database Storage">
+    Processed data is stored in MariaDB:
+
+    ```
+    Repositories → Database
+      ├─ BlocksRepository
+      ├─ TransactionsRepository
+      ├─ PoolsRepository
+      └─ StatisticsRepository
+    ```
+  </Step>
+
+  <Step title="API & WebSocket">
+    Data is exposed to clients:
+
+    ```
+    Frontend ← WebSocket ← Backend
+    Frontend ← REST API ← Backend
+    ```
+  </Step>
+
+  <Step title="Frontend Rendering">
+    Angular components render the data:
+
+    ```
+    Components subscribe to:
+      - WebSocket streams (real-time)
+      - HTTP endpoints (on-demand)
+    ```
+  </Step>
+</Steps>
+
+---
+
+## External Dependencies
+
+<CardGroup cols={2}>
+  <Card title="Bitcoin Core" icon="bitcoin">
+    **Required** - Primary data source via JSON-RPC
+    
+    - Block data
+    - Mempool state
+    - Transaction details
+  </Card>
+
+  <Card title="Electrum Server" icon="server">
+    **Optional** - Enables address lookups
+    
+    - Address balances
+    - Address transaction history
+    - UTXO queries
+  </Card>
+
+  <Card title="MariaDB" icon="database">
+    **Required** - Persistent data storage
+    
+    - Historical blocks
+    - Statistics
+    - Mining pool data
+  </Card>
+
+  <Card title="Redis" icon="memory">
+    **Optional** - Caching layer
+    
+    - API response caching
+    - Rate limiting
+    - Session storage
+  </Card>
+</CardGroup>
+
+---
+
+## Performance Optimizations
+
+### Backend
+
+<AccordionGroup>
+  <Accordion title="Cluster Mode">
+    Scale horizontally with multiple worker processes:
+
+    ```json
+    {
+      "MEMPOOL": {
+        "SPAWN_CLUSTER_PROCS": 4
+      }
+    }
+    ```
+
+    See: `backend/src/index.ts:70-96`
+  </Accordion>
+
+  <Accordion title="Disk Cache">
+    Frequently accessed data is cached to disk:
+
+    ```typescript
+    // backend/src/api/disk-cache.ts
+    - Block data
+    - Transaction details
+    - Address histories
+    ```
+  </Accordion>
+
+  <Accordion title="Redis Cache">
+    Optional Redis integration for distributed caching:
+
+    ```typescript
+    // backend/src/api/redis-cache.ts
+    - API responses
+    - Rate limiting counters
+    ```
+  </Accordion>
+
+  <Accordion title="Database Indexing">
+    Optimized indexes on frequently queried columns:
+
+    - `blocks.height`
+    - `blocks.hash`
+    - `transactions.txid`
+    - `statistics.added`
+  </Accordion>
+</AccordionGroup>
+
+### Frontend
+
+<Tabs>
+  <Tab title="Lazy Loading">
+    Modules are lazy-loaded to reduce initial bundle size:
+
+    ```typescript
+    // Routes use dynamic imports
+    loadChildren: () => import('./pages/...').then(m => m.Module)
+    ```
+  </Tab>
+
+  <Tab title="Virtual Scrolling">
+    Long lists use virtual scrolling for performance:
+
+    ```html
+    <cdk-virtual-scroll-viewport>
+      <!-- Only visible items are rendered -->
+    </cdk-virtual-scroll-viewport>
+    ```
+  </Tab>
+
+  <Tab title="Server-Side Rendering">
+    SSR support for faster initial page loads:
+
+    ```bash
+    npm run build:ssr
+    npm run serve:ssr
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Setup Guide" icon="laptop-code" href="/development/setup">
+    Set up your development environment
+  </Card>
+  <Card title="Contributing" icon="code-pull-request" href="/development/contributing">
+    Learn how to contribute code
+  </Card>
+  <Card title="Testing" icon="vial" href="/development/testing">
+    Write and run tests
+  </Card>
+  <Card title="API Reference" icon="book" href="/api/introduction">
+    Explore the REST API
+  </Card>
+</CardGroup>

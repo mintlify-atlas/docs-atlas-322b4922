@@ -1,0 +1,231 @@
+---
+title: 'API Introduction'
+description: 'Overview of the Mempool API - a RESTful API for Bitcoin blockchain data and mempool analytics'
+icon: 'book-open'
+---
+
+## Welcome to the Mempool API
+
+The Mempool API is a powerful RESTful API that provides comprehensive access to Bitcoin blockchain data, mempool statistics, transaction information, mining data, and more. The API is designed for developers building Bitcoin applications, explorers, analytics tools, and wallets.
+
+<Note>
+  The Mempool API is **completely free** and does not require authentication for public endpoints. All data is returned in JSON format.
+</Note>
+
+## Base URL
+
+The official Mempool API is available at:
+
+```
+https://mempool.space/api/v1/
+```
+
+<CodeGroup>
+```bash Example Request
+curl https://mempool.space/api/v1/fees/recommended
+```
+
+```json Example Response
+{
+  "fastestFee": 15,
+  "halfHourFee": 12,
+  "hourFee": 10,
+  "economyFee": 8,
+  "minimumFee": 1
+}
+```
+</CodeGroup>
+
+## Network Variations
+
+The Mempool API supports multiple Bitcoin networks:
+
+| Network | Base URL |
+|---------|----------|
+| **Mainnet** | `https://mempool.space/api/v1/` |
+| **Testnet** | `https://mempool.space/testnet/api/v1/` |
+| **Testnet4** | `https://mempool.space/testnet4/api/v1/` |
+| **Signet** | `https://mempool.space/signet/api/v1/` |
+| **Liquid** | `https://liquid.network/api/v1/` |
+
+## Response Format
+
+All API responses are returned in JSON format with appropriate HTTP status codes. The API uses standard RESTful conventions:
+
+### Success Responses
+
+- **200 OK** - Request succeeded, data returned
+- **204 No Content** - Request succeeded, no data to return
+
+### Error Responses
+
+Errors are returned with appropriate HTTP status codes and a JSON error object:
+
+<CodeGroup>
+```json 400 Bad Request
+{
+  "error": "Invalid address"
+}
+```
+
+```json 404 Not Found
+{
+  "error": "No such mempool or blockchain transaction"
+}
+```
+
+```json 500 Internal Server Error
+{
+  "error": "Failed to get transaction"
+}
+```
+
+```json 503 Service Unavailable
+{
+  "error": "Service Unavailable"
+}
+```
+</CodeGroup>
+
+### Common HTTP Status Codes
+
+| Status Code | Meaning | Description |
+|-------------|---------|-------------|
+| **200** | OK | Request successful |
+| **204** | No Content | Request successful, no data |
+| **400** | Bad Request | Invalid parameters or request format |
+| **404** | Not Found | Resource not found (transaction, block, etc.) |
+| **405** | Method Not Allowed | Endpoint not available with current backend |
+| **413** | Payload Too Large | Request data exceeds limits |
+| **422** | Unprocessable Entity | Request valid but cannot be processed |
+| **500** | Internal Server Error | Server error occurred |
+| **503** | Service Unavailable | Service temporarily unavailable (e.g., syncing) |
+
+## API Categories
+
+The Mempool API is organized into several categories:
+
+<CardGroup cols={2}>
+  <Card title="Transactions" icon="exchange-alt" href="/api/blockchain/transactions">
+    Query transaction data, status, outspends, and broadcast transactions
+  </Card>
+  
+  <Card title="Addresses" icon="wallet" href="/api/blockchain/addresses">
+    Get address balances, transaction history, and UTXOs
+  </Card>
+  
+  <Card title="Blocks" icon="cube" href="/api/blockchain/blocks">
+    Access block data, headers, and transaction lists
+  </Card>
+  
+  <Card title="Mining" icon="pickaxe" href="/api/mining/pools">
+    Mining pool statistics, hashrate data, and difficulty adjustments
+  </Card>
+  
+  <Card title="Fees" icon="dollar-sign" href="/api/mempool/fees">
+    Real-time fee recommendations and mempool blocks
+  </Card>
+  
+  <Card title="Mempool" icon="layer-group" href="/api/mempool/overview">
+    Current mempool state and recent transactions
+  </Card>
+  
+  <Card title="Lightning Network" icon="bolt" href="/api/lightning/nodes">
+    Lightning Network nodes, channels, and statistics
+  </Card>
+  
+  <Card title="Statistics" icon="chart-line" href="/api/lightning/statistics">
+    Historical statistics over various time periods
+  </Card>
+</CardGroup>
+
+## Data Formats
+
+### Transaction IDs (txid)
+Transaction IDs are 64-character hexadecimal strings:
+```
+15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521
+```
+
+### Block Hashes
+Block hashes are 64-character hexadecimal strings:
+```
+000000000000000000076c036ff5119e5a5a74df77abf64203473364509f7732
+```
+
+### Addresses
+Bitcoin addresses support multiple formats:
+- Legacy (P2PKH): `1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa`
+- P2SH: `3J98t1WpEZ73CNmYviecrnyiWrnqRhWNLy`
+- Bech32 (native SegWit): `bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4`
+- Bech32m (Taproot): `bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297`
+
+### Amounts
+All Bitcoin amounts are returned in **satoshis** (1 BTC = 100,000,000 satoshis).
+
+### Timestamps
+All timestamps are **Unix timestamps** (seconds since January 1, 1970 UTC).
+
+## Self-Hosted Instances
+
+You can run your own Mempool instance with the same API. The Mempool project is open-source:
+
+- **GitHub**: [mempool/mempool](https://github.com/mempool/mempool)
+- **Docker**: Available via Docker for easy deployment
+- **Configuration**: Fully configurable with your own Bitcoin node
+
+<Warning>
+  When running a self-hosted instance, the API base path is `/api/v1/` from your server's root domain.
+</Warning>
+
+## Getting Started
+
+<Steps>
+  <Step title="Choose Your Endpoint">
+    Browse the API documentation to find the endpoint that matches your needs.
+  </Step>
+  
+  <Step title="Make a Request">
+    Use any HTTP client to make a GET or POST request to the endpoint.
+  </Step>
+  
+  <Step title="Handle the Response">
+    Parse the JSON response and integrate it into your application.
+  </Step>
+  
+  <Step title="Monitor Rate Limits">
+    Be mindful of rate limits to ensure consistent API access.
+  </Step>
+</Steps>
+
+## Support and Resources
+
+<CardGroup cols={2}>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/mempool/mempool">
+    View source code, report issues, and contribute
+  </Card>
+  
+  <Card title="Twitter" icon="twitter" href="https://twitter.com/mempool">
+    Follow for updates and announcements
+  </Card>
+  
+  <Card title="Telegram" icon="telegram" href="https://t.me/mempool">
+    Join the community discussion
+  </Card>
+  
+  <Card title="API Status" icon="signal" href="https://mempool.space">
+    Check current API status and network health
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/api/authentication">
+    Learn about API access and authentication
+  </Card>
+  
+  <Card title="Rate Limits" icon="gauge" href="/api/rate-limits">
+    Understand rate limiting policies
+  </Card>
+</CardGroup>

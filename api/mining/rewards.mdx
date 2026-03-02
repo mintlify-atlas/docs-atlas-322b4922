@@ -1,0 +1,236 @@
+---
+title: 'Block Rewards'
+description: 'Retrieve historical block reward and fee statistics'
+---
+
+## Get Reward Statistics
+
+<CodeBlock title="GET /api/v1/mining/reward-stats/:blockCount">
+Retrieves aggregate statistics about block rewards and fees for a specified number of recent blocks.
+</CodeBlock>
+
+### Path Parameters
+
+<ParamField path="blockCount" type="number" required>
+  Number of recent blocks to analyze (e.g., 144 for ~1 day, 1008 for ~1 week)
+</ParamField>
+
+### Response
+
+<ResponseField name="totalReward" type="number">
+  Total block rewards (subsidy + fees) in satoshis
+</ResponseField>
+
+<ResponseField name="totalFee" type="number">
+  Total transaction fees in satoshis
+</ResponseField>
+
+<ResponseField name="totalTx" type="number">
+  Total number of transactions
+</ResponseField>
+
+### Example Request
+
+```bash cURL
+curl "https://mempool.space/api/v1/mining/reward-stats/144"
+```
+
+### Example Response
+
+```json
+{
+  "totalReward": 90450000000,
+  "totalFee": 1250000000,
+  "totalTx": 280000
+}
+```
+
+---
+
+## Get Historical Block Rewards
+
+<CodeBlock title="GET /api/v1/mining/blocks/rewards/:interval">
+Retrieves historical block reward data over a specified time interval.
+</CodeBlock>
+
+### Path Parameters
+
+<ParamField path="interval" type="string" required>
+  Time interval for reward data. Supported values:
+  - `24h` - Last 24 hours
+  - `3d` - Last 3 days
+  - `1w` - Last week
+  - `1m` - Last month
+  - `3m` - Last 3 months
+  - `6m` - Last 6 months
+  - `1y` - Last year
+  - `2y` - Last 2 years
+  - `3y` - Last 3 years
+  - `4y` - Last 4 years
+  - `all` - All time
+</ParamField>
+
+### Response
+
+Returns an array of historical reward data points aggregated by the appropriate time granularity based on the interval.
+
+### Example Request
+
+```bash cURL
+curl "https://mempool.space/api/v1/mining/blocks/rewards/1w"
+```
+
+### Example Response
+
+The response format varies based on the interval, but generally includes timestamp and reward amount data.
+
+---
+
+## Get Historical Block Fees
+
+<CodeBlock title="GET /api/v1/mining/blocks/fees/:interval">
+Retrieves historical total block fee data over a specified time interval.
+</CodeBlock>
+
+### Path Parameters
+
+<ParamField path="interval" type="string" required>
+  Time interval for fee data. Same values as rewards endpoint.
+</ParamField>
+
+### Response
+
+Returns an array of historical fee data points aggregated by the appropriate time granularity.
+
+### Example Request
+
+```bash cURL
+curl "https://mempool.space/api/v1/mining/blocks/fees/1m"
+```
+
+---
+
+## Get Block Fees for Time Range
+
+<CodeBlock title="GET /api/v1/mining/blocks/fees">
+Retrieves total block fees for a custom time range specified by query parameters.
+</CodeBlock>
+
+### Query Parameters
+
+<ParamField query="from" type="number" required>
+  Start timestamp (Unix seconds)
+</ParamField>
+
+<ParamField query="to" type="number" required>
+  End timestamp (Unix seconds)
+</ParamField>
+
+### Response
+
+Returns the total fees for blocks within the specified time range.
+
+### Example Request
+
+```bash cURL
+curl "https://mempool.space/api/v1/mining/blocks/fees?from=1709251200&to=1709337600"
+```
+
+### Example Response
+
+```json
+5250000000
+```
+
+---
+
+## Get Historical Block Fee Rates
+
+<CodeBlock title="GET /api/v1/mining/blocks/fee-rates/:interval">
+Retrieves historical block fee rate percentiles over a specified time interval.
+</CodeBlock>
+
+### Path Parameters
+
+<ParamField path="interval" type="string" required>
+  Time interval for fee rate data. Same values as other endpoints.
+</ParamField>
+
+### Response
+
+Returns an array of fee rate percentile data, typically including values like minimum, median, and various percentiles (10th, 25th, 50th, 75th, 90th, etc.) in sat/vB.
+
+### Example Request
+
+```bash cURL
+curl "https://mempool.space/api/v1/mining/blocks/fee-rates/1w"
+```
+
+---
+
+## Understanding Reward Data
+
+### Block Rewards
+
+A Bitcoin block reward consists of two components:
+
+1. **Block Subsidy**: The fixed amount of new bitcoin created with each block
+   - Started at 50 BTC per block
+   - Halves approximately every 4 years (210,000 blocks)
+   - Current subsidy (2024): 3.125 BTC (312,500,000 satoshis)
+
+2. **Transaction Fees**: The sum of fees from all transactions included in the block
+
+```
+Total Block Reward = Block Subsidy + Transaction Fees
+```
+
+### Halvings
+
+Bitcoin's block subsidy halves approximately every 210,000 blocks:
+
+- Blocks 0 - 209,999: 50 BTC
+- Blocks 210,000 - 419,999: 25 BTC
+- Blocks 420,000 - 629,999: 12.5 BTC
+- Blocks 630,000 - 839,999: 6.25 BTC
+- Blocks 840,000+: 3.125 BTC
+
+### Fee Statistics
+
+Fee statistics provide insights into network congestion and transaction costs:
+
+- **Total Fees**: Sum of all transaction fees in a block or time period
+- **Fee Rates**: Fees measured in satoshis per virtual byte (sat/vB)
+- **Fee Percentiles**: Distribution of fee rates showing what percentage of transactions paid certain fee levels
+
+---
+
+## Related Endpoints
+
+For additional block-related data:
+
+- [Block sizes and weights](/api/mining/difficulty-adjustment#get-historical-block-sizes-and-weights)
+- [Difficulty adjustments](/api/mining/difficulty-adjustment)
+- [Pool statistics](/api/mining/pools)
+
+---
+
+## Error Responses
+
+<ResponseField name="400" type="error">
+  Returned when query parameters are invalid
+  ```json
+  {
+    "error": "Invalid timestamp range"
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="500" type="error">
+  Returned when there's a server error fetching reward data
+  ```json
+  {
+    "error": "Failed to get reward stats"
+  }
+  ```
+</ResponseField>

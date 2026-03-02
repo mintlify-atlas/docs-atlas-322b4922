@@ -1,0 +1,1059 @@
+---
+title: 'Maintenance & Operations'
+description: 'Keep your Mempool instance updated, backed up, and running smoothly'
+icon: 'wrench'
+---
+
+## Overview
+
+Proper maintenance ensures your Mempool instance runs reliably and securely. This guide covers updates, backups, monitoring, and troubleshooting.
+
+<Info>
+  Regular maintenance prevents issues before they occur. Establish a routine to keep your instance healthy.
+</Info>
+
+---
+
+## Updates
+
+### Mempool Updates
+
+<Tabs>
+  <Tab title="Docker">
+    ```bash
+    cd /path/to/mempool/docker
+    
+    # Pull latest images
+    docker-compose pull
+    
+    # Stop current containers
+    docker-compose down
+    
+    # Start with new images
+    docker-compose up -d
+    
+    # Clean up old images
+    docker image prune -f
+    ```
+  </Tab>
+  
+  <Tab title="Manual Install">
+    ```bash
+    cd /path/to/mempool
+    
+    # Stop backend
+    pkill -f "node.*mempool"
+    
+    # Backup current installation
+    cp -r backend backend.backup
+    cp -r frontend frontend.backup
+    
+    # Pull latest code
+    git fetch --all
+    git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
+    
+    # Update backend
+    cd backend
+    npm install
+    npm run build
+    
+    # Update frontend
+    cd ../frontend  
+    npm install
+    npm run build
+    
+    # Restart backend
+    npm run start
+    ```
+  </Tab>
+  
+  <Tab title="Node Distros">
+    Updates are handled by the distribution:
+    
+    **Umbrel**: Apps auto-update or use App Store update button
+    
+    **RaspiBlitz**: `SERVICES > Mempool > UPDATE`
+    
+    **StartOS**: Check marketplace for updates
+    
+    **myNode Premium**: One-click updates in web UI
+  </Tab>
+</Tabs>
+
+### Bitcoin Core Updates
+
+<Warning>
+  Always backup your wallet and configuration before updating Bitcoin Core.
+</Warning>
+
+<Steps>
+  <Step title="Check Current Version">
+    ```bash
+    bitcoin-cli --version
+    ```
+  </Step>
+  
+  <Step title="Download Latest Release">
+    Visit [bitcoincore.org](https://bitcoincore.org/en/download/) or:
+    
+    ```bash
+    # Download and verify (example for v26.0)
+    wget https://bitcoincore.org/bin/bitcoin-core-26.0/bitcoin-26.0-x86_64-linux-gnu.tar.gz
+    wget https://bitcoincore.org/bin/bitcoin-core-26.0/SHA256SUMS
+    wget https://bitcoincore.org/bin/bitcoin-core-26.0/SHA256SUMS.asc
+    
+    # Verify signatures
+    sha256sum --check SHA256SUMS --ignore-missing
+    gpg --verify SHA256SUMS.asc
+    ```
+  </Step>
+  
+  <Step title="Stop Bitcoin Core">
+    ```bash
+    bitcoin-cli stop
+    # Wait for graceful shutdown (can take several minutes)
+    ```
+  </Step>
+  
+  <Step title="Install Update">
+    ```bash
+    tar -xzf bitcoin-26.0-x86_64-linux-gnu.tar.gz
+    sudo install -m 0755 -o root -g root -t /usr/local/bin bitcoin-26.0/bin/*
+    ```
+  </Step>
+  
+  <Step title="Restart">
+    ```bash
+    bitcoind -daemon
+    
+    # Verify version
+    bitcoin-cli --version
+    ```
+  </Step>
+</Steps>
+
+### Electrs Updates
+
+```bash
+cd /path/to/electrs
+
+# Stop electrs
+pkill electrs
+
+# Backup database (optional, takes time)
+cp -r /electrs/mainnet /electrs/mainnet.backup
+
+# Update code
+git fetch --all
+git checkout mempool  # or specific version
+
+# Rebuild
+cargo build --release
+
+# Restart
+./target/release/electrs --conf /path/to/config.toml
+```
+
+### Database Updates
+
+MariaDB minor version updates:
+
+```bash
+# Debian/Ubuntu
+sudo apt-get update
+sudo apt-get upgrade mariadb-server
+sudo systemctl restart mariadb
+
+# Check tables after upgrade
+mysql_upgrade -u root -p
+```
+
+---
+
+## Backups
+
+### What to Back Up
+
+<CardGroup cols={2}>
+  <Card title="Critical" icon="triangle-exclamation">
+    **Must back up regularly:**
+    
+    - MariaDB databases
+    - Configuration files
+    - SSL certificates
+    - Custom scripts
+  </Card>
+  
+  <Card title="Optional" icon="circle-info">
+    **Can be recreated:**
+    
+    - Bitcoin blockchain (IBD)
+    - Electrs indexes (reindex)
+    - Nginx cache
+    - Redis cache
+  </Card>
+</CardGroup>
+
+### Database Backups
+
+<Tabs>
+  <Tab title="Full Backup">
+    ```bash backup-databases.sh
+    #!/bin/bash
+    # Full database backup script
+    
+    BACKUP_DIR="/backup/mysql"
+    DATE=$(date +%Y%m%d_%H%M%S)
+    
+    # Create backup directory
+    mkdir -p "$BACKUP_DIR"
+    
+    # Backup all Mempool databases
+    mysqldump -u root -p --all-databases \
+      --single-transaction \
+      --quick \
+      --lock-tables=false \
+      > "$BACKUP_DIR/mempool_full_$DATE.sql"
+    
+    # Compress
+    gzip "$BACKUP_DIR/mempool_full_$DATE.sql"
+    
+    # Keep only last 7 days
+    find "$BACKUP_DIR" -name "mempool_full_*.sql.gz" -mtime +7 -delete
+    
+    echo "Backup complete: mempool_full_$DATE.sql.gz"
+    ```
+  </Tab>
+  
+  <Tab title="Selective Backup">
+    ```bash backup-mainnet.sh
+    #!/bin/bash
+    # Backup only mainnet database
+    
+    BACKUP_DIR="/backup/mysql"
+    DATE=$(date +%Y%m%d_%H%M%S)
+    
+    mkdir -p "$BACKUP_DIR"
+    
+    # Backup specific database
+    mysqldump -u root -p mempool \
+      --single-transaction \
+      --quick \
+      > "$BACKUP_DIR/mempool_mainnet_$DATE.sql"
+    
+    gzip "$BACKUP_DIR/mempool_mainnet_$DATE.sql"
+    ```
+  </Tab>
+  
+  <Tab title="Automated Backups">
+    ```cron
+    # Add to crontab: crontab -e
+    
+    # Daily backup at 3 AM
+    0 3 * * * /usr/local/bin/backup-databases.sh >> /var/log/mempool-backup.log 2>&1
+    
+    # Weekly full backup on Sunday
+    0 2 * * 0 /usr/local/bin/backup-databases.sh --full
+    ```
+  </Tab>
+</Tabs>
+
+### Configuration Backups
+
+```bash
+# Create config backup
+tar -czf mempool-config-$(date +%Y%m%d).tar.gz \
+  /path/to/mempool/backend/mempool-config.json \
+  /bitcoin/bitcoin.conf \
+  /electrs/config.toml \
+  /usr/local/etc/nginx/nginx.conf \
+  /etc/ssl/certs/mempool/
+```
+
+### Restore from Backup
+
+<Steps>
+  <Step title="Stop Services">
+    ```bash
+    # Stop Mempool
+    pkill -f "node.*mempool"
+    
+    # Stop web server
+    sudo systemctl stop nginx
+    ```
+  </Step>
+  
+  <Step title="Restore Database">
+    ```bash
+    # Decompress backup
+    gunzip mempool_full_20260302_030000.sql.gz
+    
+    # Restore database
+    mysql -u root -p < mempool_full_20260302_030000.sql
+    
+    # Or restore specific database
+    mysql -u root -p mempool < mempool_mainnet_20260302_030000.sql
+    ```
+  </Step>
+  
+  <Step title="Restore Configuration">
+    ```bash
+    tar -xzf mempool-config-20260302.tar.gz -C /
+    ```
+  </Step>
+  
+  <Step title="Restart Services">
+    ```bash
+    npm run start
+    sudo systemctl start nginx
+    ```
+  </Step>
+</Steps>
+
+### Remote Backups
+
+Store backups off-site for disaster recovery:
+
+```bash
+# Rsync to remote server
+rsync -avz --delete \
+  /backup/mysql/ \
+  user@backup-server:/backups/mempool/
+
+# Or use cloud storage (example: AWS S3)
+aws s3 sync /backup/mysql/ s3://my-backup-bucket/mempool/
+
+# Or use Backblaze B2
+b2 sync /backup/mysql/ b2://my-bucket/mempool/
+```
+
+---
+
+## Monitoring
+
+### System Health Checks
+
+```bash health-check.sh
+#!/bin/bash
+# Mempool health check script
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+check_service() {
+    local name=$1
+    local command=$2
+    
+    if eval "$command" > /dev/null 2>&1; then
+        echo -e "${GREEN}✓${NC} $name is running"
+        return 0
+    else
+        echo -e "${RED}✗${NC} $name is not running"
+        return 1
+    fi
+}
+
+echo "=== Mempool Health Check ==="
+echo ""
+
+# Check Bitcoin Core
+check_service "Bitcoin Core" "bitcoin-cli getblockchaininfo"
+
+# Check Electrs
+check_service "Electrs" "curl -sf http://localhost:3000/blocks/tip/height"
+
+# Check MariaDB
+check_service "MariaDB" "mysqladmin -u root ping"
+
+# Check Redis (if used)
+if command -v redis-cli &> /dev/null; then
+    check_service "Redis" "redis-cli ping"
+fi
+
+# Check Mempool Backend
+check_service "Mempool Backend" "curl -sf http://localhost:8999/api/v1/backend-info"
+
+# Check Nginx
+check_service "Nginx" "curl -sf http://localhost/"
+
+echo ""
+echo "=== Resource Usage ==="
+echo "Disk Usage:"
+df -h /bitcoin /electrs | tail -n +2
+
+echo ""
+echo "Memory Usage:"
+free -h
+
+echo ""
+echo "Bitcoin Sync Status:"
+bitcoin-cli getblockchaininfo | jq -r '.blocks, .verification_progress'
+```
+
+Run via cron and send alerts:
+
+```bash
+# Run every 10 minutes, email on failure
+*/10 * * * * /usr/local/bin/health-check.sh || mail -s "Mempool Health Check Failed" admin@example.com
+```
+
+### Log Monitoring
+
+<Tabs>
+  <Tab title="Mempool Logs">
+    ```bash
+    # View real-time logs
+    tail -f /var/log/mempool/backend.log
+    
+    # Search for errors
+    grep -i error /var/log/mempool/backend.log
+    
+    # Count errors in last hour
+    grep -i error /var/log/mempool/backend.log | \
+      awk -v d="$(date --date='1 hour ago' '+%Y-%m-%d %H:%M')" '$0 > d' | \
+      wc -l
+    ```
+  </Tab>
+  
+  <Tab title="Bitcoin Core Logs">
+    ```bash
+    # View debug log
+    tail -f /bitcoin/debug.log
+    
+    # Check for issues
+    grep -E "ERROR|Warning" /bitcoin/debug.log | tail -20
+    ```
+  </Tab>
+  
+  <Tab title="Nginx Logs">
+    ```bash
+    # Access log
+    tail -f /var/log/nginx/access.log
+    
+    # Error log
+    tail -f /var/log/nginx/error.log
+    
+    # Top IPs by request count
+    awk '{print $1}' /var/log/nginx/access.log | sort | uniq -c | sort -nr | head -10
+    
+    # Response time analysis
+    awk '{print $10}' /var/log/nginx/access.log | \
+      awk '{sum+=$1; n++} END {print "Avg:", sum/n "s"}'
+    ```
+  </Tab>
+  
+  <Tab title="System Logs">
+    ```bash
+    # Systemd journal
+    sudo journalctl -u mempool -f
+    
+    # System log
+    tail -f /var/log/syslog
+    
+    # OOM killer events
+    dmesg | grep -i "out of memory"
+    ```
+  </Tab>
+</Tabs>
+
+### Automated Alerting
+
+```bash alert-setup.sh
+#!/bin/bash
+# Set up basic alerting
+
+# Check disk space
+USAGE=$(df -h /bitcoin | awk 'NR==2 {print $5}' | sed 's/%//')
+if [ $USAGE -gt 90 ]; then
+    echo "WARNING: Disk usage at ${USAGE}%" | \
+      mail -s "Mempool Disk Space Alert" admin@example.com
+fi
+
+# Check Bitcoin sync status  
+BLOCKS=$(bitcoin-cli getblockchaininfo | jq -r '.blocks')
+HEADERS=$(bitcoin-cli getblockchaininfo | jq -r '.headers')
+if [ $((HEADERS - BLOCKS)) -gt 10 ]; then
+    echo "WARNING: Bitcoin is $((HEADERS - BLOCKS)) blocks behind" | \
+      mail -s "Mempool Sync Alert" admin@example.com
+fi
+
+# Check backend responsiveness
+if ! curl -sf http://localhost:8999/api/v1/backend-info > /dev/null; then
+    echo "ERROR: Mempool backend not responding" | \
+      mail -s "Mempool Backend Down" admin@example.com
+fi
+```
+
+### Monitoring Dashboards
+
+<AccordionGroup>
+  <Accordion title="Grafana + Prometheus">
+    Full monitoring stack:
+    
+    ```yaml docker-compose.monitoring.yml
+    version: '3.7'
+    
+    services:
+      prometheus:
+        image: prom/prometheus:latest
+        volumes:
+          - ./prometheus.yml:/etc/prometheus/prometheus.yml
+          - prometheus-data:/prometheus
+        ports:
+          - 9090:9090
+      
+      grafana:
+        image: grafana/grafana:latest
+        volumes:
+          - grafana-data:/var/lib/grafana
+        ports:
+          - 3000:3000
+        environment:
+          - GF_SECURITY_ADMIN_PASSWORD=admin
+      
+      node-exporter:
+        image: prom/node-exporter:latest
+        ports:
+          - 9100:9100
+    
+    volumes:
+      prometheus-data:
+      grafana-data:
+    ```
+  </Accordion>
+  
+  <Accordion title="Simple Web Dashboard">
+    Create a basic status page:
+    
+    ```html status.html
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Mempool Status</title>
+      <meta http-equiv="refresh" content="30">
+    </head>
+    <body>
+      <h1>Mempool Instance Status</h1>
+      <div id="status"></div>
+      
+      <script>
+        async function updateStatus() {
+          const response = await fetch('/api/v1/backend-info');
+          const data = await response.json();
+          document.getElementById('status').innerHTML = `
+            <p>Backend Version: ${data.version}</p>
+            <p>Git Commit: ${data.gitCommit}</p>
+            <p>Hostname: ${data.hostname}</p>
+          `;
+        }
+        updateStatus();
+        setInterval(updateStatus, 30000);
+      </script>
+    </body>
+    </html>
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="Backend won't start">
+    **Symptoms**: Process exits immediately or fails to start
+    
+    **Diagnosis**:
+    ```bash
+    # Check logs
+    npm run start 2>&1 | tee backend-error.log
+    
+    # Check port availability
+    sudo lsof -i :8999
+    
+    # Test database connection
+    mysql -u mempool -p -e "USE mempool; SHOW TABLES;"
+    ```
+    
+    **Solutions**:
+    - Verify `mempool-config.json` syntax
+    - Ensure MariaDB is running
+    - Check Bitcoin Core RPC credentials
+    - Verify port 8999 is not in use
+  </Accordion>
+  
+  <Accordion title="High memory usage">
+    **Symptoms**: System running out of RAM, OOM killer triggered
+    
+    **Diagnosis**:
+    ```bash
+    # Check memory usage
+    free -h
+    ps aux --sort=-%mem | head -10
+    
+    # Check for OOM killer
+    dmesg | grep -i "killed process"
+    ```
+    
+    **Solutions**:
+    - Reduce Bitcoin `dbcache` after sync
+    - Limit MariaDB `innodb_buffer_pool_size`
+    - Set Redis `maxmemory`
+    - Reduce `SPAWN_CLUSTER_PROCS`
+    - Add swap space (not ideal)
+    - Upgrade RAM
+  </Accordion>
+  
+  <Accordion title="Disk space issues">
+    **Symptoms**: Services failing, database errors
+    
+    **Diagnosis**:
+    ```bash
+    # Check disk usage
+    df -h
+    du -sh /bitcoin/* | sort -h
+    du -sh /electrs/* | sort -h
+    
+    # Find large files
+    find /bitcoin -type f -size +1G -exec ls -lh {} \;
+    ```
+    
+    **Solutions**:
+    - Clean up old Bitcoin debug logs: `rm /bitcoin/debug.log.*`
+    - Prune nginx cache: `rm -rf /var/cache/nginx/*`
+    - Clear Redis: `redis-cli FLUSHDB`
+    - Rotate logs: configure `logrotate`
+    - Archive old backups
+    - Consider pruning Bitcoin (loses full node capability)
+  </Accordion>
+  
+  <Accordion title="Slow API responses">
+    **Symptoms**: Web interface sluggish, API timeouts
+    
+    **Diagnosis**:
+    ```bash
+    # Test API response time
+    time curl http://localhost:8999/api/v1/blocks
+    
+    # Check database performance
+    mysql -u root -p -e "SHOW PROCESSLIST;"
+    
+    # Monitor disk I/O
+    iostat -x 1
+    ```
+    
+    **Solutions**:
+    - Enable Redis caching
+    - Optimize MariaDB (see [Scaling Guide](/self-hosting/scaling))
+    - Configure nginx caching
+    - Upgrade to NVMe SSD
+    - Add database indexes
+  </Accordion>
+  
+  <Accordion title="Bitcoin Core not syncing">
+    **Symptoms**: Blocks stuck, no progress
+    
+    **Diagnosis**:
+    ```bash
+    # Check sync status
+    bitcoin-cli getblockchaininfo
+    
+    # Check network connections
+    bitcoin-cli getnetworkinfo
+    bitcoin-cli getpeerinfo | jq length
+    
+    # Check logs
+    tail -100 /bitcoin/debug.log
+    ```
+    
+    **Solutions**:
+    - Check network connectivity
+    - Verify time synchronization: `timedatectl`
+    - Add more connections: increase `maxconnections`
+    - Add nodes manually: `bitcoin-cli addnode <ip> add`
+    - Check firewall rules
+    - Increase `dbcache` during sync
+  </Accordion>
+  
+  <Accordion title="Electrs sync stuck">
+    **Symptoms**: Address lookups not working, electrs not progressing
+    
+    **Diagnosis**:
+    ```bash
+    # Check electrs status
+    curl http://localhost:3000/blocks/tip/height
+    
+    # Compare to Bitcoin height
+    bitcoin-cli getblockcount
+    
+    # Check logs
+    journalctl -u electrs -n 100
+    ```
+    
+    **Solutions**:
+    - Ensure Bitcoin Core is fully synced first
+    - Verify `txindex=1` in bitcoin.conf
+    - Check disk space (needs ~100GB free)
+    - Restart electrs
+    - In worst case, delete database and reindex
+  </Accordion>
+</AccordionGroup>
+
+### Database Maintenance
+
+<Steps>
+  <Step title="Check Table Status">
+    ```sql
+    -- Check for corrupted tables
+    CHECK TABLE blocks;
+    CHECK TABLE transactions;
+    CHECK TABLE prices;
+    
+    -- View table sizes
+    SELECT 
+        table_name,
+        ROUND(((data_length + index_length) / 1024 / 1024), 2) AS "Size (MB)"
+    FROM information_schema.TABLES 
+    WHERE table_schema = "mempool"
+    ORDER BY (data_length + index_length) DESC;
+    ```
+  </Step>
+  
+  <Step title="Optimize Tables">
+    ```sql
+    -- Optimize all tables (can take time)
+    OPTIMIZE TABLE blocks;
+    OPTIMIZE TABLE transactions;
+    OPTIMIZE TABLE hashrates;
+    OPTIMIZE TABLE prices;
+    ```
+  </Step>
+  
+  <Step title="Update Statistics">
+    ```sql
+    -- Rebuild table statistics
+    ANALYZE TABLE blocks;
+    ANALYZE TABLE transactions;
+    ```
+  </Step>
+</Steps>
+
+### Re-indexing
+
+If data becomes corrupted, re-index specific components:
+
+```bash
+# Re-index Mempool blocks (from backend directory)
+npm run start -- --reindex=blocks,hashrates
+
+# Re-index mining pools
+npm run start -- --update-pools
+
+# Full re-index (nuclear option)
+# This truncates all tables and rebuilds from Bitcoin Core
+mysql -u root -p mempool < mariadb-structure.sql
+npm run start -- --reindex
+```
+
+---
+
+## Security Maintenance
+
+### SSL Certificate Renewal
+
+<Tabs>
+  <Tab title="Let's Encrypt (Certbot)">
+    ```bash
+    # Test renewal (dry run)
+    sudo certbot renew --dry-run
+    
+    # Force renewal
+    sudo certbot renew --force-renewal
+    
+    # Auto-renewal (should be automatic via cron)
+    # Verify cron job exists:
+    sudo systemctl status certbot.timer
+    ```
+  </Tab>
+  
+  <Tab title="Manual Certificate">
+    ```bash
+    # Renew certificate
+    # Replace with your certificate provider's process
+    
+    # Update nginx config
+    sudo vim /etc/nginx/sites-available/mempool
+    
+    # Test configuration
+    sudo nginx -t
+    
+    # Reload nginx
+    sudo systemctl reload nginx
+    ```
+  </Tab>
+</Tabs>
+
+### Security Updates
+
+```bash
+# Update system packages
+sudo apt-get update
+sudo apt-get upgrade
+
+# Check for security updates specifically
+sudo unattended-upgrades --dry-run
+
+# Enable automatic security updates
+sudo dpkg-reconfigure -plow unattended-upgrades
+```
+
+### Audit Configuration
+
+Regularly review security settings:
+
+```bash security-audit.sh
+#!/bin/bash
+# Basic security audit
+
+echo "=== Security Audit ==="
+
+# Check SSH configuration
+echo "SSH PasswordAuthentication:"
+grep "^PasswordAuthentication" /etc/ssh/sshd_config
+
+# Check firewall status
+echo "\nFirewall Status:"
+sudo ufw status
+
+# Check for open ports
+echo "\nOpen Ports:"
+sudo netstat -tulpn | grep LISTEN
+
+# Check Bitcoin RPC exposure
+echo "\nBitcoin RPC Configuration:"
+grep "rpcallowip" /bitcoin/bitcoin.conf
+
+# Check nginx security headers
+echo "\nNginx Security Headers:"
+curl -I https://localhost 2>&1 | grep -E "X-|Strict|Content-Security"
+
+# Check for default passwords
+echo "\nChecking for default credentials..."
+# Add checks for your services
+```
+
+---
+
+## Performance Maintenance
+
+### Regular Cleanup Tasks
+
+```bash cleanup.sh
+#!/bin/bash
+# Weekly maintenance cleanup
+
+# Clean old Bitcoin debug logs
+find /bitcoin -name "debug.log.*" -mtime +30 -delete
+
+# Rotate large debug.log
+if [ $(stat -f%z /bitcoin/debug.log 2>/dev/null || stat -c%s /bitcoin/debug.log) -gt 1000000000 ]; then
+    mv /bitcoin/debug.log /bitcoin/debug.log.old
+    bitcoin-cli logging '["all"]' '["all"]'  # Trigger log rotation
+fi
+
+# Clear old nginx cache
+find /var/cache/nginx -type f -mtime +7 -delete
+
+# Vacuum MariaDB (reclaim space)
+mysqlcheck --optimize --all-databases -u root -p
+
+# Clean Docker (if used)
+docker system prune -f --volumes
+
+echo "Cleanup complete"
+```
+
+### Scheduled Maintenance
+
+```cron
+# Add to crontab: crontab -e
+
+# Daily health check (4 AM)
+0 4 * * * /usr/local/bin/health-check.sh >> /var/log/mempool-health.log 2>&1
+
+# Daily database backup (3 AM)
+0 3 * * * /usr/local/bin/backup-databases.sh >> /var/log/mempool-backup.log 2>&1
+
+# Weekly cleanup (Sunday 2 AM)
+0 2 * * 0 /usr/local/bin/cleanup.sh >> /var/log/mempool-cleanup.log 2>&1
+
+# Weekly update check (Monday 1 AM)
+0 1 * * 1 /usr/local/bin/check-updates.sh >> /var/log/mempool-updates.log 2>&1
+
+# Monthly log rotation
+0 0 1 * * /usr/sbin/logrotate /etc/logrotate.conf
+```
+
+---
+
+## Disaster Recovery
+
+### Recovery Plan
+
+<Steps>
+  <Step title="Prepare Recovery Environment">
+    - Provision new server with same specs
+    - Install base OS and dependencies
+    - Configure network and storage
+  </Step>
+  
+  <Step title="Restore Bitcoin Core">
+    ```bash
+    # Option 1: Restore from backup
+    rsync -avz backup-server:/bitcoin/ /bitcoin/
+    
+    # Option 2: Fresh IBD (takes days)
+    bitcoind -daemon
+    # Wait for sync...
+    ```
+  </Step>
+  
+  <Step title="Restore Databases">
+    ```bash
+    # Restore MariaDB
+    mysql -u root -p < backup/mempool_full_latest.sql
+    
+    # Verify restoration
+    mysql -u root -p -e "USE mempool; SHOW TABLES;"
+    ```
+  </Step>
+  
+  <Step title="Restore Configuration">
+    ```bash
+    tar -xzf config-backup.tar.gz -C /
+    
+    # Verify configurations
+    cat /path/to/mempool/backend/mempool-config.json
+    ```
+  </Step>
+  
+  <Step title="Rebuild Indexes">
+    ```bash
+    # Electrs (will take days)
+    electrs --conf /electrs/config.toml
+    
+    # Wait for indexing...
+    ```
+  </Step>
+  
+  <Step title="Start Services">
+    ```bash
+    # Start Mempool
+    cd /path/to/mempool/backend
+    npm run start
+    
+    # Start web server
+    sudo systemctl start nginx
+    
+    # Verify health
+    curl http://localhost:8999/api/v1/backend-info
+    ```
+  </Step>
+</Steps>
+
+### Testing Backups
+
+Regularly test your backup restoration process:
+
+```bash
+# Spin up test environment
+docker run -d --name mariadb-test -e MYSQL_ROOT_PASSWORD=test mariadb:10.5
+
+# Restore backup to test instance
+mysql -h 127.0.0.1 -P 3307 -u root -ptest < backup/mempool_full_latest.sql
+
+# Verify data
+mysql -h 127.0.0.1 -P 3307 -u root -ptest -e "USE mempool; SELECT COUNT(*) FROM blocks;"
+
+# Clean up
+docker stop mariadb-test
+docker rm mariadb-test
+```
+
+---
+
+## Maintenance Checklist
+
+<Steps>
+  <Step title="Daily">
+    - [ ] Check service health
+    - [ ] Review error logs
+    - [ ] Monitor disk space
+    - [ ] Verify backups completed
+  </Step>
+  
+  <Step title="Weekly">
+    - [ ] Test backup restoration
+    - [ ] Review performance metrics
+    - [ ] Clean up old logs
+    - [ ] Check for updates
+    - [ ] Optimize databases
+  </Step>
+  
+  <Step title="Monthly">
+    - [ ] Update system packages
+    - [ ] Review security audit
+    - [ ] Test disaster recovery plan
+    - [ ] Archive old backups
+    - [ ] Review resource usage trends
+  </Step>
+  
+  <Step title="Quarterly">
+    - [ ] Major version updates
+    - [ ] Hardware health check
+    - [ ] Review and update documentation
+    - [ ] Capacity planning review
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Scaling Guide"
+    icon="arrow-up-right-dots"
+    href="/self-hosting/scaling"
+  >
+    Optimize for better performance
+  </Card>
+  
+  <Card
+    title="Requirements"
+    icon="server"
+    href="/self-hosting/requirements"
+  >
+    Review hardware requirements
+  </Card>
+  
+  <Card
+    title="Configuration"
+    icon="gear"
+    href="/configuration/backend-config"
+  >
+    Backend configuration reference
+  </Card>
+  
+  <Card
+    title="Community Support"
+    icon="discord"
+    href="https://mempool.space/discord"
+  >
+    Get help from the community
+  </Card>
+</CardGroup>

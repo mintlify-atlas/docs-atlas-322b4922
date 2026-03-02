@@ -1,0 +1,487 @@
+---
+title: 'Docker Installation'
+description: 'Deploy Mempool using Docker containers'
+icon: 'docker'
+---
+
+<Warning>
+  Docker installation requires you to separately manage Bitcoin Core and an Electrum Server. Only proceed if you have experience with Docker and server management.
+</Warning>
+
+## Overview
+
+The Docker installation method uses `docker-compose` to run Mempool's frontend and backend in containers. You'll need to provide your own Bitcoin Core and Electrum Server instances.
+
+<Note>
+  A video guide for this installation method is available on [BitcoinTV.com](https://bitcointv.com/w/8fpAx6rf5CQ16mMhospwjg) by k3tan.
+</Note>
+
+## Prerequisites
+
+<Steps>
+  <Step title="Docker & Docker Compose">
+    Install Docker and Docker Compose on your system:
+    
+    <CodeGroup>
+    ```bash Ubuntu/Debian
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sudo sh get-docker.sh
+    sudo apt-get install docker-compose-plugin
+    ```
+    
+    ```bash macOS
+    brew install docker docker-compose
+    ```
+    
+    ```bash Fedora/CentOS
+    sudo dnf install docker docker-compose
+    sudo systemctl start docker
+    sudo systemctl enable docker
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Bitcoin Core">
+    Ensure Bitcoin Core is installed, running, and synced with the following configuration in `bitcoin.conf`:
+    
+    ```ini bitcoin.conf
+    txindex=1
+    server=1
+    rpcuser=mempool
+    rpcpassword=mempool
+    ```
+    
+    <Tip>
+      Customize `rpcuser` and `rpcpassword` for better security. You'll need these credentials later.
+    </Tip>
+  </Step>
+
+  <Step title="Electrum Server (Optional)">
+    Install and sync an Electrum Server for full address lookup functionality:
+    
+    <Tabs>
+      <Tab title="Electrs (romanz)">
+        [romanz/electrs](https://github.com/romanz/electrs) - Efficient, lightweight implementation
+        ```bash
+        MEMPOOL_BACKEND="electrum"
+        ```
+      </Tab>
+      <Tab title="Fulcrum">
+        [cculianu/Fulcrum](https://github.com/cculianu/Fulcrum) - Fast, high-performance server
+        ```bash
+        MEMPOOL_BACKEND="electrum"
+        ```
+      </Tab>
+      <Tab title="Esplora (Blockstream)">
+        [Blockstream/electrs](https://github.com/Blockstream/electrs) - Advanced block explorer backend
+        ```bash
+        MEMPOOL_BACKEND="esplora"
+        ```
+      </Tab>
+    </Tabs>
+    
+    <Info>
+      Without an Electrum Server, set `MEMPOOL_BACKEND="none"` - address lookups will be disabled.
+    </Info>
+  </Step>
+</Steps>
+
+## Quick Start
+
+<Steps>
+  <Step title="Clone Repository">
+    Get the latest Mempool code:
+    ```bash
+    git clone https://github.com/mempool/mempool
+    cd mempool
+    ```
+    
+    Checkout the latest stable release:
+    ```bash
+    latestrelease=$(curl -s https://api.github.com/repos/mempool/mempool/releases/latest|grep tag_name|head -1|cut -d '"' -f4)
+    git checkout $latestrelease
+    ```
+  </Step>
+
+  <Step title="Navigate to Docker Directory">
+    ```bash
+    cd docker
+    ```
+  </Step>
+
+  <Step title="Configure Environment">
+    Edit `docker-compose.yml` with your Bitcoin Core connection details (see configuration sections below).
+  </Step>
+
+  <Step title="Launch Containers">
+    ```bash
+    docker-compose up -d
+    ```
+    
+    <Info>
+      Add `-d` flag to run in detached mode (background).
+    </Info>
+  </Step>
+
+  <Step title="Access Mempool">
+    Open your browser to [http://localhost](http://localhost)
+    
+    The mempool visualizer will populate as new transactions are detected.
+  </Step>
+</Steps>
+
+## Configuration
+
+### Bitcoin Core Only
+
+<Note>
+  This configuration works without an Electrum Server, but address lookups will be disabled.
+</Note>
+
+Edit `docker-compose.yml` to configure the API service:
+
+```yaml docker-compose.yml
+services:
+  api:
+    environment:
+      MEMPOOL_BACKEND: "none"
+      CORE_RPC_HOST: "172.27.0.1"
+      CORE_RPC_PORT: "8332"
+      CORE_RPC_USERNAME: "mempool"
+      CORE_RPC_PASSWORD: "mempool"
+      CORE_RPC_TIMEOUT: "60000"
+      DATABASE_ENABLED: "true"
+      DATABASE_HOST: "db"
+      DATABASE_DATABASE: "mempool"
+      DATABASE_USERNAME: "mempool"
+      DATABASE_PASSWORD: "mempool"
+      STATISTICS_ENABLED: "true"
+```
+
+<Tip>
+  The IP `172.27.0.1` is Docker's default gateway, allowing containers to reach the host machine. Adjust if your setup differs.
+</Tip>
+
+### Bitcoin Core + Electrum Server
+
+For full functionality including address lookups, configure your Electrum Server:
+
+<Tabs>
+  <Tab title="Electrs/Fulcrum">
+    ```yaml docker-compose.yml
+    services:
+      api:
+        environment:
+          MEMPOOL_BACKEND: "electrum"
+          CORE_RPC_HOST: "172.27.0.1"
+          CORE_RPC_PORT: "8332"
+          CORE_RPC_USERNAME: "mempool"
+          CORE_RPC_PASSWORD: "mempool"
+          ELECTRUM_HOST: "172.27.0.1"
+          ELECTRUM_PORT: "50002"
+          ELECTRUM_TLS_ENABLED: "false"
+          DATABASE_ENABLED: "true"
+          DATABASE_HOST: "db"
+          DATABASE_DATABASE: "mempool"
+          DATABASE_USERNAME: "mempool"
+          DATABASE_PASSWORD: "mempool"
+          STATISTICS_ENABLED: "true"
+    ```
+    
+    Use `MEMPOOL_BACKEND: "electrum"` for:
+    - [romanz/electrs](https://github.com/romanz/electrs)
+    - [cculianu/Fulcrum](https://github.com/cculianu/Fulcrum)
+  </Tab>
+
+  <Tab title="Esplora">
+    ```yaml docker-compose.yml
+    services:
+      api:
+        environment:
+          MEMPOOL_BACKEND: "esplora"
+          CORE_RPC_HOST: "172.27.0.1"
+          CORE_RPC_PORT: "8332"
+          CORE_RPC_USERNAME: "mempool"
+          CORE_RPC_PASSWORD: "mempool"
+          ESPLORA_REST_API_URL: "http://172.27.0.1:3000"
+          DATABASE_ENABLED: "true"
+          DATABASE_HOST: "db"
+          DATABASE_DATABASE: "mempool"
+          DATABASE_USERNAME: "mempool"
+          DATABASE_PASSWORD: "mempool"
+          STATISTICS_ENABLED: "true"
+    ```
+    
+    Use `MEMPOOL_BACKEND: "esplora"` for:
+    - [Blockstream/electrs](https://github.com/Blockstream/electrs)
+  </Tab>
+</Tabs>
+
+## Docker Compose File
+
+Here's the complete `docker-compose.yml` file from the repository:
+
+```yaml docker-compose.yml
+version: "3.7"
+
+services:
+  web:
+    environment:
+      FRONTEND_HTTP_PORT: "8080"
+      BACKEND_MAINNET_HTTP_HOST: "api"
+    image: mempool/frontend:latest
+    user: "1000:1000"
+    restart: on-failure
+    stop_grace_period: 1m
+    command: "./wait-for db:3306 --timeout=720 -- nginx -g 'daemon off;'"
+    ports:
+      - 80:8080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/ | grep -q '<html' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+      
+  api:
+    environment:
+      MEMPOOL_BACKEND: "none"
+      CORE_RPC_HOST: "172.27.0.1"
+      CORE_RPC_PORT: "8332"
+      CORE_RPC_USERNAME: "mempool"
+      CORE_RPC_PASSWORD: "mempool"
+      DATABASE_ENABLED: "true"
+      DATABASE_HOST: "db"
+      DATABASE_DATABASE: "mempool"
+      DATABASE_USERNAME: "mempool"
+      DATABASE_PASSWORD: "mempool"
+      STATISTICS_ENABLED: "true"
+    image: mempool/backend:latest
+    user: "1000:1000"
+    restart: on-failure
+    stop_grace_period: 1m
+    command: "./wait-for-it.sh db:3306 --timeout=720 --strict -- ./start.sh"
+    volumes:
+      - ./data:/backend/cache
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8999/api/v1/backend-info | grep -q . || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      
+  db:
+    environment:
+      MYSQL_DATABASE: "mempool"
+      MYSQL_USER: "mempool"
+      MYSQL_PASSWORD: "mempool"
+      MYSQL_ROOT_PASSWORD: "admin"
+      MARIADB_AUTO_UPGRADE: "1"
+    image: mariadb:10.5.21
+    user: "1000:1000"
+    restart: on-failure
+    stop_grace_period: 1m
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "mempool", "-pmempool"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+```
+
+## Advanced Configuration
+
+You can override any backend setting from `mempool-config.json` using environment variables in `docker-compose.yml`.
+
+<AccordionGroup>
+  <Accordion title="Core Configuration Options">
+    ```yaml
+    MEMPOOL_NETWORK: "mainnet"              # Network: mainnet, testnet, signet
+    MEMPOOL_BACKEND: "electrum"             # Backend: electrum, esplora, none
+    BACKEND_HTTP_PORT: "8999"               # Backend API port
+    MEMPOOL_SPAWN_CLUSTER_PROCS: "0"        # Number of worker processes
+    MEMPOOL_API_URL_PREFIX: "/api/v1/"      # API URL prefix
+    MEMPOOL_POLL_RATE_MS: "2000"            # Mempool polling interval
+    ```
+  </Accordion>
+
+  <Accordion title="Database Configuration">
+    ```yaml
+    DATABASE_ENABLED: "true"
+    DATABASE_HOST: "db"
+    DATABASE_PORT: "3306"
+    DATABASE_DATABASE: "mempool"
+    DATABASE_USERNAME: "mempool"
+    DATABASE_PASSWORD: "mempool"
+    DATABASE_TIMEOUT: "180000"
+    ```
+  </Accordion>
+
+  <Accordion title="Indexing & Features">
+    ```yaml
+    MEMPOOL_INDEXING_BLOCKS_AMOUNT: "11000"       # Number of blocks to index
+    MEMPOOL_BLOCKS_SUMMARIES_INDEXING: "false"    # Enable block summaries
+    MEMPOOL_CPFP_INDEXING: "false"                # Enable CPFP indexing
+    MEMPOOL_AUTOMATIC_POOLS_UPDATE: "false"       # Auto-update mining pools
+    ```
+  </Accordion>
+
+  <Accordion title="Lightning Network">
+    ```yaml
+    LIGHTNING_ENABLED: "false"
+    LIGHTNING_BACKEND: "lnd"
+    LND_REST_API_URL: "https://localhost:8080"
+    LND_TLS_CERT_PATH: "/path/to/tls.cert"
+    LND_MACAROON_PATH: "/path/to/readonly.macaroon"
+    ```
+  </Accordion>
+
+  <Accordion title="Logging & Monitoring">
+    ```yaml
+    MEMPOOL_STDOUT_LOG_MIN_PRIORITY: "info"  # Log level: debug, info, warn, error
+    STATISTICS_ENABLED: "true"                # Enable statistics collection
+    SYSLOG_ENABLED: "false"                   # Enable syslog
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Container Management
+
+<CodeGroup>
+```bash Start containers
+docker-compose up -d
+```
+
+```bash View logs
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f api
+docker-compose logs -f web
+docker-compose logs -f db
+```
+
+```bash Stop containers
+docker-compose down
+```
+
+```bash Restart service
+docker-compose restart api
+```
+
+```bash Update images
+docker-compose pull
+docker-compose up -d
+```
+
+```bash Clean up
+# Remove containers and volumes
+docker-compose down -v
+```
+</CodeGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Container won't start">
+    Check logs for specific errors:
+    ```bash
+    docker-compose logs api
+    ```
+    
+    Common issues:
+    - Bitcoin Core not accessible from container
+    - Database connection failed
+    - Port conflicts (80 already in use)
+  </Accordion>
+
+  <Accordion title="Cannot connect to Bitcoin Core">
+    Verify the `CORE_RPC_HOST` IP address:
+    ```bash
+    # Find Docker gateway IP
+    docker network inspect docker_default | grep Gateway
+    ```
+    
+    Test RPC connection from host:
+    ```bash
+    bitcoin-cli -rpcuser=mempool -rpcpassword=mempool getblockchaininfo
+    ```
+  </Accordion>
+
+  <Accordion title="Electrum connection failed">
+    - Verify Electrum Server is running and synced
+    - Check `ELECTRUM_HOST` and `ELECTRUM_PORT` settings
+    - Ensure correct `MEMPOOL_BACKEND` value (electrum vs esplora)
+    - Test connectivity: `telnet <ELECTRUM_HOST> <ELECTRUM_PORT>`
+  </Accordion>
+
+  <Accordion title="Database initialization failed">
+    Reset the database:
+    ```bash
+    docker-compose down
+    rm -rf mysql/data
+    docker-compose up -d
+    ```
+    
+    <Warning>
+      This will delete all stored Mempool data.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Out of memory errors">
+    Increase Docker memory limits in Docker Desktop settings or `docker-compose.yml`:
+    ```yaml
+    services:
+      api:
+        deploy:
+          resources:
+            limits:
+              memory: 4G
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Health Checks
+
+Monitor service health:
+
+<CodeGroup>
+```bash Check status
+docker-compose ps
+```
+
+```bash API health
+curl http://localhost:8999/api/v1/backend-info
+```
+
+```bash Frontend health
+curl http://localhost/
+```
+
+```bash Database health
+docker-compose exec db mysqladmin ping -h localhost -u mempool -pmempool
+```
+</CodeGroup>
+
+## Performance Tuning
+
+<Tip>
+  For better performance:
+  - Enable statistics: `STATISTICS_ENABLED: "true"`
+  - Increase poll rate for faster updates: `MEMPOOL_POLL_RATE_MS: "1000"`
+  - Use SSD storage for database volumes
+  - Allocate sufficient memory to containers
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Manual Installation" icon="wrench" href="/installation/manual">
+    Full control over backend and frontend
+  </Card>
+  <Card title="Configuration Guide" icon="gear" href="/configuration/backend-config">
+    Advanced configuration options
+  </Card>
+</CardGroup>

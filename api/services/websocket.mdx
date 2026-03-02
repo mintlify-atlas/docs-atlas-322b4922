@@ -1,0 +1,626 @@
+---
+title: 'WebSocket API'
+description: 'Real-time Bitcoin blockchain and mempool updates via WebSocket'
+---
+
+## Overview
+
+The WebSocket API provides real-time updates for Bitcoin blockchain events, mempool changes, transaction tracking, and more. Connect to `/api/v1/ws` to start receiving live data.
+
+## Connection
+
+### Endpoint
+
+```
+wss://mempool.space/api/v1/ws
+```
+
+For testnet:
+```
+wss://mempool.space/testnet/api/v1/ws
+```
+
+## Message Format
+
+All WebSocket messages are JSON-formatted. The client sends commands to subscribe to data streams, and the server responds with real-time updates.
+
+## Initialization
+
+### Init Action
+
+After connecting, send an initialization message to receive the current state:
+
+```json
+{
+  "action": "init"
+}
+```
+
+**Response**
+
+```json
+{
+  "backend": "esplora",
+  "mempoolInfo": {
+    "loaded": true,
+    "size": 50000000,
+    "bytes": 100000000,
+    "usage": 200000000,
+    "maxmempool": 300000000,
+    "mempoolminfee": 0.00001,
+    "minrelaytxfee": 0.00001
+  },
+  "vBytesPerSecond": 100,
+  "blocks": [...],
+  "conversions": {...},
+  "mempool-blocks": [...],
+  "transactions": [...],
+  "backendInfo": {...},
+  "loadingIndicators": {...},
+  "da": {...},
+  "fees": {...}
+}
+```
+
+## Subscription Topics
+
+### Want Subscriptions
+
+Subscribe to specific data streams using the `want` action:
+
+```json
+{
+  "action": "want",
+  "data": ["blocks", "mempool-blocks", "live-2h-chart", "stats"]
+}
+```
+
+**Available Topics**
+
+<ParamField body="blocks" type="string">
+  Subscribe to new block notifications
+</ParamField>
+
+<ParamField body="mempool-blocks" type="string">
+  Subscribe to projected mempool block updates
+</ParamField>
+
+<ParamField body="live-2h-chart" type="string">
+  Subscribe to live 2-hour chart statistics
+</ParamField>
+
+<ParamField body="stats" type="string">
+  Subscribe to mempool statistics (mempoolInfo, vBytesPerSecond, fees, difficulty adjustment)
+</ParamField>
+
+<ParamField body="tomahawk" type="string">
+  Subscribe to Bitcoin node health status updates
+</ParamField>
+
+## Transaction Tracking
+
+### Track Single Transaction
+
+```json
+{
+  "track-tx": "a1b2c3d4e5f6...",
+  "watch-mempool": true
+}
+```
+
+**Parameters**
+
+<ParamField body="track-tx" type="string" required>
+  Transaction ID (64-character hex string)
+</ParamField>
+
+<ParamField body="watch-mempool" type="boolean" optional>
+  Monitor mempool for transaction appearance
+</ParamField>
+
+**Response Updates**
+
+<ResponseField name="tx" type="object">
+  Full transaction data when transaction appears
+</ResponseField>
+
+<ResponseField name="txReplaced" type="object">
+  Notification if transaction was replaced (RBF)
+  <ResponseField name="txid" type="string">
+    Replacement transaction ID
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="txPosition" type="object">
+  Current mempool position
+  <ResponseField name="txid" type="string">
+    Transaction ID
+  </ResponseField>
+  <ResponseField name="position" type="object">
+    <ResponseField name="block" type="number">
+      Projected block index
+    </ResponseField>
+    <ResponseField name="vsize" type="number">
+      Position within block (vsize offset)
+    </ResponseField>
+    <ResponseField name="accelerated" type="boolean" optional>
+      Whether transaction is accelerated
+    </ResponseField>
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="txConfirmed" type="string">
+  Transaction ID when confirmed in a block
+</ResponseField>
+
+<ResponseField name="utxoSpent" type="object">
+  Notification when tracked transaction outputs are spent
+</ResponseField>
+
+### Track Multiple Transactions
+
+```json
+{
+  "track-txs": ["txid1", "txid2", "txid3"]
+}
+```
+
+**Response**
+
+```json
+{
+  "tracked-txs": {
+    "txid1": {
+      "confirmed": false,
+      "position": { "block": 0, "vsize": 1000 }
+    },
+    "txid2": {
+      "confirmed": true
+    },
+    "txid3": {
+      "replacedBy": "txid4"
+    }
+  }
+}
+```
+
+## Address Tracking
+
+### Track Single Address
+
+```json
+{
+  "track-address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+}
+```
+
+**Response Updates**
+
+<ResponseField name="address-transactions" type="array">
+  New transactions involving the tracked address
+</ResponseField>
+
+<ResponseField name="address-removed-transactions" type="array">
+  Transactions removed from mempool
+</ResponseField>
+
+<ResponseField name="block-transactions" type="array">
+  Transactions confirmed in a block
+</ResponseField>
+
+### Track Multiple Addresses
+
+```json
+{
+  "track-addresses": [
+    "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+    "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+  ]
+}
+```
+
+<Note>
+  Maximum of `MAX_TRACKED_ADDRESSES` addresses per connection (configurable, typically 10-100)
+</Note>
+
+**Response**
+
+```json
+{
+  "multi-address-transactions": {
+    "bc1qxy2k...": {
+      "mempool": [...],
+      "confirmed": [...],
+      "removed": [...]
+    }
+  }
+}
+```
+
+## Advanced Tracking
+
+### Track Script Public Keys
+
+```json
+{
+  "track-scriptpubkeys": ["76a914...", "0014..."]
+}
+```
+
+Track transactions by raw script public keys (hex format).
+
+### Track Mempool Block
+
+```json
+{
+  "track-mempool-block": 0
+}
+```
+
+Subscribe to updates for a specific projected mempool block (index 0 = next block).
+
+**Response**
+
+```json
+{
+  "projected-block-transactions": {
+    "index": 0,
+    "sequence": 12345,
+    "blockTransactions": [...]
+  }
+}
+```
+
+or delta updates:
+
+```json
+{
+  "projected-block-transactions": {
+    "index": 0,
+    "sequence": 12346,
+    "delta": {
+      "added": [...],
+      "removed": [...]
+    }
+  }
+}
+```
+
+### Track RBF (Replace-By-Fee)
+
+```json
+{
+  "track-rbf": "all"
+}
+```
+
+or for full-RBF only:
+
+```json
+{
+  "track-rbf": "fullRbf"
+}
+```
+
+**Response**
+
+```json
+{
+  "rbfLatest": {
+    "replacements": [...],
+    "trees": {...}
+  }
+}
+```
+
+### Track RBF Summary
+
+```json
+{
+  "track-rbf-summary": true
+}
+```
+
+**Response**
+
+```json
+{
+  "rbfLatestSummary": [
+    {
+      "txid": "...",
+      "oldFee": 1000,
+      "newFee": 2000,
+      "oldFeeRate": 10,
+      "newFeeRate": 20
+    }
+  ]
+}
+```
+
+## Acceleration Tracking
+
+### Track Accelerations
+
+```json
+{
+  "track-accelerations": true
+}
+```
+
+Receive updates about transaction accelerations.
+
+**Initial Response**
+
+```json
+{
+  "accelerations": {
+    "accelerations": [
+      {
+        "txid": "...",
+        "max_bid": 50000
+      }
+    ]
+  }
+}
+```
+
+**Update Messages**
+
+```json
+{
+  "accelerations": {
+    "added": [
+      {
+        "txid": "...",
+        "max_bid": 50000
+      }
+    ],
+    "removed": ["txid1", "txid2"]
+  }
+}
+```
+
+## Mempool Tracking
+
+### Track Mempool Changes (TXIDs only)
+
+```json
+{
+  "track-mempool-txids": true
+}
+```
+
+**Response**
+
+```json
+{
+  "mempool-txids": {
+    "sequence": 12345,
+    "added": ["txid1", "txid2"],
+    "removed": ["txid3"],
+    "mined": ["txid4"],
+    "replaced": [
+      { "replaced": "txid5", "by": "txid6" }
+    ]
+  }
+}
+```
+
+### Track Mempool Changes (Full Transactions)
+
+```json
+{
+  "track-mempool": true
+}
+```
+
+**Response**
+
+```json
+{
+  "mempool-transactions": {
+    "sequence": 12345,
+    "added": [{...}, {...}],
+    "removed": ["txid1"],
+    "mined": ["txid2"],
+    "replaced": [
+      { "replaced": "txid3", "by": {...} }
+    ]
+  }
+}
+```
+
+## Block Updates
+
+When subscribed to `blocks`, receive new block notifications:
+
+```json
+{
+  "block": {
+    "id": "00000000000000000001...",
+    "height": 750000,
+    "version": 536870912,
+    "timestamp": 1640000000,
+    "tx_count": 2500,
+    "size": 1300000,
+    "weight": 3996000,
+    "merkle_root": "abc123...",
+    "previousblockhash": "00000000000000000002...",
+    "mediantime": 1639999000,
+    "nonce": 123456789,
+    "bits": 386736569,
+    "difficulty": 25000000000000,
+    "extras": {
+      "pool": {
+        "id": 1,
+        "name": "Foundry USA",
+        "slug": "foundryusa"
+      },
+      "matchRate": 98.5,
+      "expectedFees": 125000000,
+      "expectedWeight": 3990000
+    }
+  }
+}
+```
+
+## Mempool Statistics Updates
+
+When subscribed to `stats`, receive periodic updates:
+
+```json
+{
+  "mempoolInfo": {...},
+  "vBytesPerSecond": 100,
+  "fees": {
+    "fastestFee": 50,
+    "halfHourFee": 40,
+    "hourFee": 30,
+    "economyFee": 20,
+    "minimumFee": 1
+  },
+  "da": {
+    "progressPercent": 45.5,
+    "remainingBlocks": 1090,
+    "remainingTime": 653400000,
+    "previousRetarget": 2.5,
+    "expectedRetarget": 3.2
+  }
+}
+```
+
+## Utility Actions
+
+### Ping
+
+```json
+{
+  "action": "ping"
+}
+```
+
+**Response**
+
+```json
+{
+  "pong": true
+}
+```
+
+### Refresh Blocks
+
+```json
+{
+  "refresh-blocks": true
+}
+```
+
+Force refresh of block data.
+
+## Example Usage
+
+### JavaScript/TypeScript
+
+```typescript
+const ws = new WebSocket('wss://mempool.space/api/v1/ws');
+
+ws.onopen = () => {
+  // Initialize connection
+  ws.send(JSON.stringify({ action: 'init' }));
+  
+  // Subscribe to blocks and stats
+  ws.send(JSON.stringify({
+    action: 'want',
+    data: ['blocks', 'stats']
+  }));
+  
+  // Track a specific transaction
+  ws.send(JSON.stringify({
+    'track-tx': 'a1b2c3d4e5f6...',
+    'watch-mempool': true
+  }));
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  
+  if (data.block) {
+    console.log('New block:', data.block.height);
+  }
+  
+  if (data.txPosition) {
+    console.log('Transaction position:', data.txPosition);
+  }
+  
+  if (data.mempoolInfo) {
+    console.log('Mempool size:', data.mempoolInfo.size);
+  }
+};
+
+ws.onerror = (error) => {
+  console.error('WebSocket error:', error);
+};
+
+ws.onclose = () => {
+  console.log('WebSocket connection closed');
+};
+```
+
+### Python
+
+```python
+import websocket
+import json
+
+def on_message(ws, message):
+    data = json.loads(message)
+    
+    if 'block' in data:
+        print(f"New block: {data['block']['height']}")
+    
+    if 'txPosition' in data:
+        print(f"Transaction position: {data['txPosition']}")
+
+def on_open(ws):
+    # Initialize
+    ws.send(json.dumps({'action': 'init'}))
+    
+    # Subscribe to data
+    ws.send(json.dumps({
+        'action': 'want',
+        'data': ['blocks', 'stats']
+    }))
+    
+    # Track transaction
+    ws.send(json.dumps({
+        'track-tx': 'a1b2c3d4e5f6...',
+        'watch-mempool': True
+    }))
+
+ws = websocket.WebSocketApp(
+    'wss://mempool.space/api/v1/ws',
+    on_message=on_message,
+    on_open=on_open
+)
+
+ws.run_forever()
+```
+
+## Rate Limiting and Best Practices
+
+- Keep connections alive with periodic ping messages
+- Limit the number of tracked addresses/transactions per connection
+- Unsubscribe from topics when no longer needed to reduce server load
+- Handle reconnection logic with exponential backoff
+- Process messages asynchronously to avoid blocking the WebSocket thread
+
+## Error Handling
+
+The WebSocket will close the connection on:
+
+- Invalid message format
+- Malformed transaction IDs or addresses
+- Exceeding tracked item limits
+- Client errors or protocol violations
+
+Always implement reconnection logic in production applications.

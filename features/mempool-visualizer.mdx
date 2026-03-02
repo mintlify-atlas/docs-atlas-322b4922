@@ -1,0 +1,262 @@
+---
+title: 'Mempool Visualizer'
+description: 'Real-time visualization of Bitcoin mempool activity with interactive charts and block projections'
+icon: 'chart-area'
+---
+
+## Overview
+
+The Mempool Visualizer provides real-time insight into Bitcoin's mempool (memory pool) - the waiting room for unconfirmed transactions. See at a glance how busy the network is, what fee rates are being used, and when your transaction might confirm.
+
+<img src="/images/mempool-graph.png" alt="Mempool graph showing fee rate distribution" />
+
+## What is the Mempool?
+
+The mempool is where transactions wait before being included in a block. When you broadcast a Bitcoin transaction, it enters the mempool of nodes across the network. Miners select transactions from their mempool to include in the next block, typically prioritizing those with higher fee rates.
+
+<Note>
+  The mempool is not a single global entity - each node maintains its own mempool. Mempool.space aggregates mempool data to provide a representative view of network activity.
+</Note>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Real-Time Updates" icon="refresh">
+    Live mempool data updates every few seconds, showing you the latest transaction activity and fee rates.
+  </Card>
+  
+  <Card title="Fee Rate Visualization" icon="layer-group">
+    Color-coded layers represent different fee rate tiers, making it easy to see fee distribution at a glance.
+  </Card>
+  
+  <Card title="Interactive Charts" icon="chart-line">
+    Hover over the graph to see detailed breakdowns of mempool size, transaction count, and fee ranges at any point in time.
+  </Card>
+  
+  <Card title="Historical View" icon="clock">
+    Toggle between different time windows (2 hours, 8 hours, 24 hours, 1 week) to analyze mempool trends.
+  </Card>
+</CardGroup>
+
+## Understanding the Visualization
+
+### Mempool Graph
+
+The main mempool graph displays transaction data across multiple dimensions:
+
+<Tabs>
+  <Tab title="Y-Axis">
+    **Mempool Size (vBytes)**
+    
+    The vertical axis shows the total size of the mempool in virtual bytes (vB). This represents how much transaction data is waiting to be confirmed.
+    
+    - **Empty mempool**: Near 0 vB
+    - **Normal activity**: 10-50 million vB
+    - **High congestion**: 100+ million vB
+  </Tab>
+  
+  <Tab title="X-Axis">
+    **Time**
+    
+    The horizontal axis represents time, with the most recent data on the right. You can zoom and pan to explore different time periods.
+  </Tab>
+  
+  <Tab title="Colors">
+    **Fee Rate Tiers**
+    
+    Different colors represent transaction fee rate ranges:
+    
+    - **Purple/Pink**: 400+ sat/vB (highest priority)
+    - **Red/Orange**: 100-400 sat/vB (high priority)
+    - **Yellow**: 20-100 sat/vB (medium priority)
+    - **Green**: 5-20 sat/vB (low priority)
+    - **Blue**: 1-5 sat/vB (lowest priority)
+    - **Gray**: Below 1 sat/vB (may not confirm)
+  </Tab>
+</Tabs>
+
+### Mempool Blocks
+
+Below the main graph, you'll see projected "mempool blocks" - virtual blocks showing which transactions would be included in the next several blocks if they were mined right now.
+
+<img src="/images/mempool-blocks.png" alt="Mempool blocks showing projected confirmations" />
+
+Each block shows:
+- **Median fee rate**: The middle fee rate in that block
+- **Fee range**: From lowest to highest fee in the block
+- **Block fullness**: Visual indicator of how full the block is
+- **Total fees**: Sum of all transaction fees in the block
+
+<Info>
+  Mempool blocks are projections, not guaranteed confirmations. Actual blocks may differ due to new transactions, RBF (Replace-By-Fee), or miner preferences.
+</Info>
+
+## How to Use
+
+### Checking Network Congestion
+
+1. Look at the **height of the mempool graph**:
+   - Low height = network is clear, transactions confirm quickly
+   - High height = network is congested, higher fees needed
+
+2. Check the **number of mempool blocks**:
+   - 1-3 blocks = low congestion
+   - 4-6 blocks = moderate congestion
+   - 7+ blocks = high congestion
+
+### Choosing Transaction Fees
+
+<Steps>
+  <Step title="View Current Fees">
+    The fee estimator on the dashboard shows recommended fees for different confirmation priorities.
+  </Step>
+  
+  <Step title="Find Your Transaction">
+    If you've already sent a transaction, you can search for it to see where it sits in the mempool.
+  </Step>
+  
+  <Step title="Monitor Trends">
+    Use the historical view to see if fees are trending up or down, helping you decide whether to wait or accelerate.
+  </Step>
+</Steps>
+
+### Reading the Data Tooltip
+
+Hover over any point on the graph to see:
+
+- **Timestamp**: Exact time of the data point
+- **Total Size**: Complete mempool size at that moment
+- **Transaction Count**: Number of unconfirmed transactions
+- **Fee Rate Breakdown**: Size distribution across fee tiers
+- **Cumulative Totals**: Running total for each fee tier
+
+## Advanced Features
+
+### Weight Mode Toggle
+
+Switch between virtual bytes (vB) and weight units (WU) for different perspectives on block space:
+
+- **vBytes**: Standard unit, easier to understand
+- **Weight Units**: Raw block space measurement (1 vB = 4 WU)
+
+### Inverted Graph
+
+Flip the graph to display highest fees at the bottom instead of the top - useful for different analytical perspectives.
+
+### Time Window Selection
+
+<CardGroup cols={2}>
+  <Card title="2 Hours">
+    Best for real-time monitoring and immediate fee decisions.
+  </Card>
+  
+  <Card title="8 Hours">
+    Good for understanding recent trends and patterns.
+  </Card>
+  
+  <Card title="24 Hours">
+    Shows daily cycles and weekend vs. weekday patterns.
+  </Card>
+  
+  <Card title="1 Week">
+    Reveals longer-term trends and network behavior.
+  </Card>
+</CardGroup>
+
+## API Endpoints
+
+Access mempool data programmatically:
+
+<CodeGroup>
+```bash GET /api/v1/fees/mempool-blocks
+curl "https://mempool.space/api/v1/fees/mempool-blocks"
+```
+
+```bash GET /api/mempool
+curl "https://mempool.space/api/mempool"
+```
+
+```bash GET /api/v1/mining/pools
+curl "https://mempool.space/api/v1/mining/pools"
+```
+</CodeGroup>
+
+<Tip>
+  See the [API Reference](/api/introduction) for complete endpoint documentation.
+</Tip>
+
+## Understanding Mempool Behavior
+
+### Why Does the Mempool Clear?
+
+The mempool size fluctuates based on:
+- **Transaction inflow**: New transactions being broadcast
+- **Block mining rate**: How quickly miners find blocks
+- **Fee rates**: Whether users are willing to pay current rates
+- **Time of day**: Business hours vs. off-hours activity
+
+### Weekend Effect
+
+The mempool often clears on weekends when:
+- Fewer transactions are broadcast
+- Blocks continue to be mined at the same rate
+- Lower demand means lower fees
+
+### Fee Market Dynamics
+
+When the mempool is full:
+1. Users compete for block space by raising fees
+2. Lower-fee transactions get pushed back
+3. Some transactions may be dropped if they're too old or have too-low fees
+4. The market reaches equilibrium when demand matches supply
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Why isn't my transaction showing?">
+    Your transaction may not appear if:
+    - It hasn't been broadcast to the network yet
+    - It was rejected for having too-low fees
+    - It's using a non-standard script
+    - There's a temporary sync issue (refresh in a few moments)
+  </Accordion>
+  
+  <Accordion title="Why did my projected confirmation time increase?">
+    Confirmation estimates can change due to:
+    - New higher-fee transactions entering the mempool
+    - Slower-than-expected block times
+    - Other transactions being accelerated
+  </Accordion>
+  
+  <Accordion title="What does 'in template' mean?">
+    A transaction "in template" is currently in a mining pool's block template, meaning it's likely to be included in the next block they mine.
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<Check>Check the mempool before sending time-sensitive transactions</Check>
+<Check>Use the recommended fee rates from the dashboard</Check>
+<Check>Monitor mempool trends during high-activity periods</Check>
+<Check>Consider waiting for weekends if your transaction isn't urgent</Check>
+<Check>Use transaction acceleration for stuck transactions</Check>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Fee Estimation" icon="coins" href="/features/fee-estimation">
+    Smart fee recommendations based on mempool conditions
+  </Card>
+  
+  <Card title="Transaction Acceleration" icon="rocket" href="/features/transaction-acceleration">
+    Speed up stuck transactions with CPFP acceleration
+  </Card>
+  
+  <Card title="Blockchain Explorer" icon="blocks" href="/features/blockchain-explorer">
+    Explore confirmed transactions and blocks
+  </Card>
+  
+  <Card title="Mining Dashboard" icon="hammer" href="/features/mining-dashboard">
+    See which pools are mining blocks and their activity
+  </Card>
+</CardGroup>

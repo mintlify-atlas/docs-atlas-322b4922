@@ -1,0 +1,501 @@
+---
+title: 'Transactions'
+description: 'API endpoints for retrieving and broadcasting Bitcoin transactions'
+---
+
+## Get Transaction
+
+Retrieve detailed information about a specific transaction.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/tx/15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521"
+```
+
+```javascript JavaScript
+const txid = '15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521';
+const response = await fetch(`https://mempool.space/api/v1/tx/${txid}`);
+const transaction = await response.json();
+console.log(transaction);
+```
+
+```python Python
+import requests
+
+txid = '15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521'
+response = requests.get(f'https://mempool.space/api/v1/tx/{txid}')
+transaction = response.json()
+print(transaction)
+```
+</CodeGroup>
+
+<ParamField path="txId" type="string" required>
+  Transaction ID (64 character hex string)
+</ParamField>
+
+<ResponseField name="transaction" type="Transaction">
+  Transaction object with complete details
+  
+  <Expandable title="Transaction Fields">
+    <ResponseField name="txid" type="string">
+      Transaction ID
+    </ResponseField>
+    
+    <ResponseField name="version" type="number">
+      Transaction version number
+    </ResponseField>
+    
+    <ResponseField name="locktime" type="number">
+      Transaction locktime
+    </ResponseField>
+    
+    <ResponseField name="size" type="number">
+      Transaction size in bytes
+    </ResponseField>
+    
+    <ResponseField name="weight" type="number">
+      Transaction weight (segwit)
+    </ResponseField>
+    
+    <ResponseField name="fee" type="number">
+      Transaction fee in satoshis
+    </ResponseField>
+    
+    <ResponseField name="vin" type="Vin[]">
+      Array of transaction inputs
+      
+      <Expandable title="Vin Fields">
+        <ResponseField name="txid" type="string">
+          Input transaction ID
+        </ResponseField>
+        
+        <ResponseField name="vout" type="number">
+          Output index being spent
+        </ResponseField>
+        
+        <ResponseField name="is_coinbase" type="boolean">
+          Whether this is a coinbase input
+        </ResponseField>
+        
+        <ResponseField name="scriptsig" type="string">
+          Script signature (hex)
+        </ResponseField>
+        
+        <ResponseField name="scriptsig_asm" type="string">
+          Script signature (ASM format)
+        </ResponseField>
+        
+        <ResponseField name="sequence" type="number">
+          Input sequence number
+        </ResponseField>
+        
+        <ResponseField name="witness" type="string[]">
+          Witness data (segwit)
+        </ResponseField>
+        
+        <ResponseField name="prevout" type="Vout">
+          Previous output being spent
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="vout" type="Vout[]">
+      Array of transaction outputs
+      
+      <Expandable title="Vout Fields">
+        <ResponseField name="scriptpubkey" type="string">
+          Script pubkey (hex)
+        </ResponseField>
+        
+        <ResponseField name="scriptpubkey_asm" type="string">
+          Script pubkey (ASM format)
+        </ResponseField>
+        
+        <ResponseField name="scriptpubkey_type" type="string">
+          Script type (e.g., p2pkh, p2sh, p2wpkh, p2wsh)
+        </ResponseField>
+        
+        <ResponseField name="scriptpubkey_address" type="string">
+          Bitcoin address (if applicable)
+        </ResponseField>
+        
+        <ResponseField name="value" type="number">
+          Output value in satoshis
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="status" type="Status">
+      Transaction confirmation status
+      
+      <Expandable title="Status Fields">
+        <ResponseField name="confirmed" type="boolean">
+          Whether the transaction is confirmed
+        </ResponseField>
+        
+        <ResponseField name="block_height" type="number">
+          Block height (if confirmed)
+        </ResponseField>
+        
+        <ResponseField name="block_hash" type="string">
+          Block hash (if confirmed)
+        </ResponseField>
+        
+        <ResponseField name="block_time" type="number">
+          Block timestamp (if confirmed)
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## Get Transaction Status
+
+Retrieve only the confirmation status of a transaction.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/tx/15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521/status"
+```
+
+```javascript JavaScript
+const txid = '15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521';
+const response = await fetch(`https://mempool.space/api/v1/tx/${txid}/status`);
+const status = await response.json();
+console.log(status);
+```
+
+```python Python
+import requests
+
+txid = '15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521'
+response = requests.get(f'https://mempool.space/api/v1/tx/{txid}/status')
+status = response.json()
+print(status)
+```
+</CodeGroup>
+
+<ParamField path="txId" type="string" required>
+  Transaction ID (64 character hex string)
+</ParamField>
+
+<ResponseField name="status" type="Status">
+  Transaction confirmation status
+  
+  <Expandable title="Status Fields">
+    <ResponseField name="confirmed" type="boolean">
+      Whether the transaction is confirmed
+    </ResponseField>
+    
+    <ResponseField name="block_height" type="number">
+      Block height (if confirmed)
+    </ResponseField>
+    
+    <ResponseField name="block_hash" type="string">
+      Block hash (if confirmed)
+    </ResponseField>
+    
+    <ResponseField name="block_time" type="number">
+      Block timestamp (if confirmed)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## Get Transaction Hex
+
+Retrieve the raw transaction hex.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/tx/15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521/hex"
+```
+
+```javascript JavaScript
+const txid = '15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521';
+const response = await fetch(`https://mempool.space/api/v1/tx/${txid}/hex`);
+const hex = await response.text();
+console.log(hex);
+```
+
+```python Python
+import requests
+
+txid = '15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521'
+response = requests.get(f'https://mempool.space/api/v1/tx/{txid}/hex')
+hex_data = response.text
+print(hex_data)
+```
+</CodeGroup>
+
+<ParamField path="txId" type="string" required>
+  Transaction ID (64 character hex string)
+</ParamField>
+
+<ResponseField name="hex" type="string">
+  Raw transaction data as hexadecimal string
+</ResponseField>
+
+---
+
+## Get Transaction Outspends
+
+Retrieve the spending status of all outputs of a transaction.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/tx/15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521/outspends"
+```
+
+```javascript JavaScript
+const txid = '15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521';
+const response = await fetch(`https://mempool.space/api/v1/tx/${txid}/outspends`);
+const outspends = await response.json();
+console.log(outspends);
+```
+
+```python Python
+import requests
+
+txid = '15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521'
+response = requests.get(f'https://mempool.space/api/v1/tx/{txid}/outspends')
+outspends = response.json()
+print(outspends)
+```
+</CodeGroup>
+
+<ParamField path="txId" type="string" required>
+  Transaction ID (64 character hex string)
+</ParamField>
+
+<ResponseField name="outspends" type="Outspend[]">
+  Array of outspend objects, one for each output
+  
+  <Expandable title="Outspend Fields">
+    <ResponseField name="spent" type="boolean">
+      Whether this output has been spent
+    </ResponseField>
+    
+    <ResponseField name="txid" type="string">
+      Transaction ID that spent this output (if spent)
+    </ResponseField>
+    
+    <ResponseField name="vin" type="number">
+      Input index in the spending transaction (if spent)
+    </ResponseField>
+    
+    <ResponseField name="status" type="Status">
+      Confirmation status of the spending transaction (if spent)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## Get Transaction Merkle Proof
+
+Retrieve the merkle inclusion proof for a confirmed transaction.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/tx/15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521/merkle-proof"
+```
+
+```javascript JavaScript
+const txid = '15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521';
+const response = await fetch(`https://mempool.space/api/v1/tx/${txid}/merkle-proof`);
+const proof = await response.json();
+console.log(proof);
+```
+
+```python Python
+import requests
+
+txid = '15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521'
+response = requests.get(f'https://mempool.space/api/v1/tx/{txid}/merkle-proof')
+proof = response.json()
+print(proof)
+```
+</CodeGroup>
+
+<ParamField path="txId" type="string" required>
+  Transaction ID (64 character hex string)
+</ParamField>
+
+<ResponseField name="proof" type="MerkleProof">
+  Merkle proof object
+  
+  <Expandable title="MerkleProof Fields">
+    <ResponseField name="block_height" type="number">
+      Block height
+    </ResponseField>
+    
+    <ResponseField name="merkle" type="string[]">
+      Array of merkle tree hashes
+    </ResponseField>
+    
+    <ResponseField name="pos" type="number">
+      Position of the transaction in the block
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## Broadcast Transaction
+
+Broadcast a raw transaction to the network.
+
+<CodeGroup>
+```bash cURL
+curl -X POST "https://mempool.space/api/v1/tx" \
+  -H "Content-Type: text/plain" \
+  --data "02000000000101..."
+```
+
+```javascript JavaScript
+const rawTx = '02000000000101...';
+const response = await fetch('https://mempool.space/api/v1/tx/push', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/x-www-form-urlencoded'
+  },
+  body: `tx=${rawTx}`
+});
+const txid = await response.text();
+console.log(txid);
+```
+
+```python Python
+import requests
+
+raw_tx = '02000000000101...'
+response = requests.post(
+    'https://mempool.space/api/v1/tx/push',
+    data={'tx': raw_tx}
+)
+txid = response.text
+print(txid)
+```
+</CodeGroup>
+
+<ParamField body="tx" type="string" required>
+  Raw transaction hex string
+</ParamField>
+
+<ResponseField name="txid" type="string">
+  Transaction ID of the broadcasted transaction
+</ResponseField>
+
+<Note>
+  Use `POST /api/v1/tx/push` with form data or `POST /api/v1/tx` with raw hex in the body.
+</Note>
+
+---
+
+## Get RBF History
+
+Retrieve the Replace-By-Fee (RBF) history for a transaction.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/tx/15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521/rbf"
+```
+
+```javascript JavaScript
+const txid = '15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521';
+const response = await fetch(`https://mempool.space/api/v1/tx/${txid}/rbf`);
+const rbfHistory = await response.json();
+console.log(rbfHistory);
+```
+
+```python Python
+import requests
+
+txid = '15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521'
+response = requests.get(f'https://mempool.space/api/v1/tx/{txid}/rbf')
+rbf_history = response.json()
+print(rbf_history)
+```
+</CodeGroup>
+
+<ParamField path="txId" type="string" required>
+  Transaction ID (64 character hex string)
+</ParamField>
+
+<ResponseField name="replacements" type="object">
+  Tree of replacement transactions that replaced this transaction
+</ResponseField>
+
+<ResponseField name="replaces" type="object">
+  Tree of transactions that this transaction replaced
+</ResponseField>
+
+---
+
+## Get CPFP Info
+
+Retrieve Child-Pays-For-Parent (CPFP) information for a transaction.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/cpfp/15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521"
+```
+
+```javascript JavaScript
+const txid = '15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521';
+const response = await fetch(`https://mempool.space/api/v1/cpfp/${txid}`);
+const cpfpInfo = await response.json();
+console.log(cpfpInfo);
+```
+
+```python Python
+import requests
+
+txid = '15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521'
+response = requests.get(f'https://mempool.space/api/v1/cpfp/{txid}')
+cpfp_info = response.json()
+print(cpfp_info)
+```
+</CodeGroup>
+
+<ParamField path="txId" type="string" required>
+  Transaction ID (64 character hex string)
+</ParamField>
+
+<ResponseField name="cpfpInfo" type="object">
+  CPFP information object
+  
+  <Expandable title="CPFP Fields">
+    <ResponseField name="ancestors" type="array">
+      Array of ancestor transactions
+    </ResponseField>
+    
+    <ResponseField name="bestDescendant" type="object">
+      Best descendant transaction info (if any)
+    </ResponseField>
+    
+    <ResponseField name="descendants" type="array">
+      Array of descendant transactions (if any)
+    </ResponseField>
+    
+    <ResponseField name="effectiveFeePerVsize" type="number">
+      Effective fee rate considering CPFP
+    </ResponseField>
+    
+    <ResponseField name="sigops" type="number">
+      Signature operations count
+    </ResponseField>
+    
+    <ResponseField name="fee" type="number">
+      Transaction fee
+    </ResponseField>
+    
+    <ResponseField name="adjustedVsize" type="number">
+      Adjusted virtual size
+    </ResponseField>
+  </Expandable>
+</ResponseField>

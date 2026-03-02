@@ -1,0 +1,460 @@
+---
+title: 'Frontend Configuration'
+description: 'Configure the Mempool frontend application and web interface'
+icon: 'browser'
+---
+
+The Mempool frontend is an Angular application that provides the web interface for exploring the blockchain and mempool. Configuration is handled through environment files and build-time settings.
+
+## Configuration Overview
+
+The frontend configuration is primarily handled through:
+
+1. **Environment Files** - TypeScript files in `frontend/src/environments/`
+2. **Build Configuration** - Angular build settings in `angular.json`
+3. **Runtime Configuration** - Nginx or web server configuration
+
+<Note>
+Unlike the backend, most frontend configuration happens at build time. Changes require rebuilding the frontend application.
+</Note>
+
+## Environment Configuration
+
+<Tabs>
+  <Tab title="Development">
+    ### Development Environment
+
+    The development environment is configured in `frontend/src/environments/environment.ts`:
+
+    ```typescript
+    export const environment = {
+      production: false,
+      nativeAssetId: '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d',
+      nativeTestAssetId: '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49',
+    };
+    ```
+
+    | Parameter | Description |
+    |-----------|-------------|
+    | `production` | Set to `false` for development mode |
+    | `nativeAssetId` | Liquid mainnet native asset ID |
+    | `nativeTestAssetId` | Liquid testnet native asset ID |
+
+    <Note>
+    Development mode includes additional debugging features and less aggressive optimizations.
+    </Note>
+  </Tab>
+
+  <Tab title="Production">
+    ### Production Environment
+
+    The production environment is configured in `frontend/src/environments/environment.prod.ts`:
+
+    ```typescript
+    export const environment = {
+      production: true,
+      nativeAssetId: '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d',
+      nativeTestAssetId: '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49',
+    };
+    ```
+
+    **Building for Production:**
+    ```bash
+    npm run build
+    ```
+
+    This creates optimized production builds in the `dist/` directory with:
+    - Minified JavaScript bundles
+    - Optimized CSS
+    - AOT (Ahead-of-Time) compilation
+    - Tree shaking to reduce bundle size
+
+    <Warning>
+    Always use production builds for deployment. Development builds are significantly larger and slower.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Building the Frontend
+
+<Steps>
+  <Step title="Install Dependencies">
+    Install Node.js dependencies (requires Node.js 20.x or later):
+    
+    ```bash
+    cd frontend
+    npm install
+    ```
+  </Step>
+
+  <Step title="Build the Application">
+    Build the frontend for your target environment:
+
+    <Tabs>
+      <Tab title="Production">
+        ```bash
+        npm run build
+        ```
+        
+        Output: `dist/mempool/browser/` directory
+      </Tab>
+
+      <Tab title="Development">
+        ```bash
+        npm run start
+        ```
+        
+        Starts development server on `http://localhost:4200`
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Serve the Static Files">
+    The built frontend consists of static files that need to be served by a web server like Nginx.
+  </Step>
+</Steps>
+
+## Web Server Configuration
+
+The frontend requires a web server to serve static files and proxy API requests to the backend.
+
+<Tabs>
+  <Tab title="Nginx">
+    ### Nginx Configuration
+
+    Example Nginx configuration for serving the Mempool frontend:
+
+    ```nginx
+    server {
+        listen 80;
+        server_name mempool.local;
+        
+        root /var/www/mempool/browser;
+        index index.html;
+
+        # Frontend static files
+        location / {
+            try_files $uri $uri/ /index.html;
+            expires 1h;
+            add_header Cache-Control "public";
+        }
+
+        # API proxy to backend
+        location /api {
+            proxy_pass http://127.0.0.1:8999;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # WebSocket support
+        location /ws {
+            proxy_pass http://127.0.0.1:8999;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+        }
+    }
+    ```
+
+    <Accordion title="SSL/TLS Configuration">
+      For production deployments, enable HTTPS:
+
+      ```nginx
+      server {
+          listen 443 ssl http2;
+          server_name mempool.example.com;
+          
+          ssl_certificate /etc/ssl/certs/mempool.crt;
+          ssl_certificate_key /etc/ssl/private/mempool.key;
+          ssl_protocols TLSv1.2 TLSv1.3;
+          ssl_ciphers HIGH:!aNULL:!MD5;
+          
+          # ... rest of configuration
+      }
+
+      # Redirect HTTP to HTTPS
+      server {
+          listen 80;
+          server_name mempool.example.com;
+          return 301 https://$server_name$request_uri;
+      }
+      ```
+    </Accordion>
+
+    <Accordion title="Caching Configuration">
+      Optimize caching for better performance:
+
+      ```nginx
+      # Cache static assets
+      location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+          expires 1y;
+          add_header Cache-Control "public, immutable";
+      }
+
+      # Don't cache HTML
+      location ~* \.html$ {
+          expires -1;
+          add_header Cache-Control "no-store, no-cache, must-revalidate";
+      }
+      ```
+    </Accordion>
+  </Tab>
+
+  <Tab title="Apache">
+    ### Apache Configuration
+
+    Example Apache configuration with mod_proxy:
+
+    ```apache
+    <VirtualHost *:80>
+        ServerName mempool.local
+        DocumentRoot /var/www/mempool/browser
+
+        <Directory /var/www/mempool/browser>
+            Options Indexes FollowSymLinks
+            AllowOverride All
+            Require all granted
+            
+            # Enable URL rewriting
+            RewriteEngine On
+            RewriteBase /
+            RewriteRule ^index\.html$ - [L]
+            RewriteCond %{REQUEST_FILENAME} !-f
+            RewriteCond %{REQUEST_FILENAME} !-d
+            RewriteRule . /index.html [L]
+        </Directory>
+
+        # Proxy API requests to backend
+        ProxyPreserveHost On
+        ProxyPass /api http://127.0.0.1:8999/api
+        ProxyPassReverse /api http://127.0.0.1:8999/api
+        
+        # WebSocket support
+        RewriteEngine on
+        RewriteCond %{HTTP:Upgrade} websocket [NC]
+        RewriteCond %{HTTP:Connection} upgrade [NC]
+        RewriteRule ^/ws/(.*) "ws://127.0.0.1:8999/$1" [P,L]
+    </VirtualHost>
+    ```
+
+    Required Apache modules:
+    ```bash
+    a2enmod proxy
+    a2enmod proxy_http
+    a2enmod proxy_wstunnel
+    a2enmod rewrite
+    systemctl restart apache2
+    ```
+  </Tab>
+
+  <Tab title="Docker">
+    ### Docker Configuration
+
+    When using Docker, the frontend is already configured in the official images:
+
+    ```yaml
+    version: '3.7'
+
+    services:
+      web:
+        image: mempool/frontend:latest
+        ports:
+          - "80:8080"
+        environment:
+          FRONTEND_HTTP_PORT: "8080"
+          BACKEND_MAINNET_HTTP_HOST: "api"
+        restart: always
+
+      api:
+        image: mempool/backend:latest
+        environment:
+          MEMPOOL_BACKEND: "electrum"
+          CORE_RPC_HOST: "172.27.0.1"
+          CORE_RPC_PORT: "8332"
+          CORE_RPC_USERNAME: "mempool"
+          CORE_RPC_PASSWORD: "mempool"
+        restart: always
+    ```
+
+    <Note>
+    The Docker images include pre-configured Nginx with optimal settings. No additional web server setup is required.
+    </Note>
+  </Tab>
+</Tabs>
+
+## API Integration
+
+<AccordionGroup>
+  <Accordion title="API Endpoint Configuration">
+    The frontend automatically connects to the backend API based on the current hostname.
+
+    **Default Behavior:**
+    - Development: `http://localhost:8999/api/v1`
+    - Production: Uses the same hostname as the frontend with `/api/v1` path
+
+    **WebSocket Connection:**
+    The frontend establishes a WebSocket connection for real-time updates:
+    - Development: `ws://localhost:8999`
+    - Production: `wss://your-domain.com` (automatic upgrade to WSS with HTTPS)
+
+    <Note>
+    Ensure your web server properly proxies WebSocket connections with the `Upgrade` header.
+    </Note>
+  </Accordion>
+
+  <Accordion title="CORS Configuration">
+    If hosting the frontend and backend on different domains, configure CORS in the backend.
+
+    While Mempool doesn't expose direct CORS configuration, you can handle this at the reverse proxy level:
+
+    ```nginx
+    location /api {
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' '$http_origin';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range';
+            add_header 'Access-Control-Max-Age' 1728000;
+            add_header 'Content-Type' 'text/plain; charset=utf-8';
+            add_header 'Content-Length' 0;
+            return 204;
+        }
+        
+        add_header 'Access-Control-Allow-Origin' '$http_origin' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
+        
+        proxy_pass http://127.0.0.1:8999;
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Performance Optimization
+
+<CardGroup cols={2}>
+  <Card title="Enable Gzip" icon="file-zipper">
+    Compress responses to reduce bandwidth:
+    
+    ```nginx
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript 
+               application/javascript application/json application/xml+rss;
+    ```
+  </Card>
+
+  <Card title="Browser Caching" icon="clock">
+    Set appropriate cache headers:
+    
+    ```nginx
+    location ~* \.(js|css)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+    ```
+  </Card>
+
+  <Card title="HTTP/2" icon="bolt">
+    Enable HTTP/2 for better performance:
+    
+    ```nginx
+    listen 443 ssl http2;
+    ```
+  </Card>
+
+  <Card title="CDN Integration" icon="cloud">
+    Consider using a CDN for static assets to reduce latency and bandwidth costs.
+  </Card>
+</CardGroup>
+
+## Customization
+
+<Accordion title="Theme Customization">
+  Mempool supports light and dark themes. Users can toggle themes in the UI, and their preference is saved in browser localStorage.
+
+  **Custom Branding:**
+  
+  To customize branding, modify the Angular components and styles:
+  
+  1. Logo: Replace files in `frontend/src/resources/`
+  2. Colors: Edit `frontend/src/styles.scss`
+  3. Rebuild the frontend after changes
+
+  ```bash
+  npm run build
+  ```
+</Accordion>
+
+<Accordion title="Multi-Language Support">
+  Mempool includes built-in internationalization (i18n) support.
+
+  **Available Languages:**
+  - English (en)
+  - Spanish (es)
+  - French (fr)
+  - Japanese (ja)
+  - And many more...
+
+  Languages are automatically detected from browser settings, but users can change the language in the UI.
+</Accordion>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Frontend Won't Load">
+    **Symptom:** Blank page or 404 errors
+
+    **Solutions:**
+    1. Verify the frontend was built: Check `dist/mempool/browser/` exists
+    2. Check web server configuration: Ensure root path points to correct directory
+    3. Check web server is running: `systemctl status nginx`
+    4. Check file permissions: Frontend files should be readable by web server
+  </Accordion>
+
+  <Accordion title="API Requests Failing">
+    **Symptom:** Data not loading, console errors about failed API requests
+
+    **Solutions:**
+    1. Verify backend is running: `curl http://localhost:8999/api/v1/blocks/tip/height`
+    2. Check proxy configuration in web server
+    3. Verify CORS settings if frontend/backend on different domains
+    4. Check browser console for specific error messages
+  </Accordion>
+
+  <Accordion title="WebSocket Not Connecting">
+    **Symptom:** Real-time updates not working
+
+    **Solutions:**
+    1. Verify WebSocket proxy configuration in web server
+    2. Check for `Upgrade` header support
+    3. Test WebSocket manually: `wscat -c ws://localhost:8999`
+    4. Verify firewall allows WebSocket connections
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Backend Configuration" icon="server" href="/configuration/backend-config">
+    Configure the Mempool backend API
+  </Card>
+  
+  <Card title="Nginx Setup" icon="globe" href="https://nginx.org/en/docs/">
+    Learn more about Nginx configuration
+  </Card>
+  
+  <Card title="Docker Deployment" icon="docker" href="https://github.com/mempool/mempool/tree/master/docker">
+    Deploy with Docker for simplified setup
+  </Card>
+  
+  <Card title="Performance Tuning" icon="gauge-high" href="/installation/production">
+    Optimize for production workloads
+  </Card>
+</CardGroup>

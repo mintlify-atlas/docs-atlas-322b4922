@@ -1,0 +1,408 @@
+---
+title: 'Blocks'
+description: 'API endpoints for retrieving Bitcoin block data'
+---
+
+## Get Blocks
+
+Retrieve a list of the 15 most recent blocks.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/blocks"
+```
+
+```javascript JavaScript
+const response = await fetch('https://mempool.space/api/v1/blocks');
+const blocks = await response.json();
+console.log(blocks);
+```
+
+```python Python
+import requests
+
+response = requests.get('https://mempool.space/api/v1/blocks')
+blocks = response.json()
+print(blocks)
+```
+</CodeGroup>
+
+<ResponseField name="blocks" type="Block[]">
+  Array of block objects
+  
+  <Expandable title="Block Object">
+    <ResponseField name="id" type="string">
+      Block hash
+    </ResponseField>
+    
+    <ResponseField name="height" type="number">
+      Block height
+    </ResponseField>
+    
+    <ResponseField name="version" type="number">
+      Block version
+    </ResponseField>
+    
+    <ResponseField name="timestamp" type="number">
+      Unix timestamp of when the block was mined
+    </ResponseField>
+    
+    <ResponseField name="bits" type="number">
+      Compact representation of the target difficulty
+    </ResponseField>
+    
+    <ResponseField name="nonce" type="number">
+      Nonce value used for mining
+    </ResponseField>
+    
+    <ResponseField name="difficulty" type="number">
+      Block difficulty
+    </ResponseField>
+    
+    <ResponseField name="merkle_root" type="string">
+      Merkle root of all transactions in the block
+    </ResponseField>
+    
+    <ResponseField name="tx_count" type="number">
+      Number of transactions in the block
+    </ResponseField>
+    
+    <ResponseField name="size" type="number">
+      Block size in bytes
+    </ResponseField>
+    
+    <ResponseField name="weight" type="number">
+      Block weight (segwit)
+    </ResponseField>
+    
+    <ResponseField name="previousblockhash" type="string">
+      Hash of the previous block
+    </ResponseField>
+    
+    <ResponseField name="mediantime" type="number">
+      Median time of the last 11 blocks
+    </ResponseField>
+    
+    <ResponseField name="stale" type="boolean">
+      Whether this block is stale
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## Get Blocks at Height
+
+Retrieve 15 blocks starting from a specific height.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/blocks/800000"
+```
+
+```javascript JavaScript
+const height = 800000;
+const response = await fetch(`https://mempool.space/api/v1/blocks/${height}`);
+const blocks = await response.json();
+console.log(blocks);
+```
+
+```python Python
+import requests
+
+height = 800000
+response = requests.get(f'https://mempool.space/api/v1/blocks/{height}')
+blocks = response.json()
+print(blocks)
+```
+</CodeGroup>
+
+<ParamField path="height" type="number" required>
+  Block height to start from
+</ParamField>
+
+<ResponseField name="blocks" type="Block[]">
+  Array of 15 block objects starting from the specified height (see Block Object structure above)
+</ResponseField>
+
+---
+
+## Get Block by Hash
+
+Retrieve detailed information about a specific block by its hash.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/block/000000000000000000076c036ff5119e5a5a74df77abf64203473364509f7732"
+```
+
+```javascript JavaScript
+const blockHash = '000000000000000000076c036ff5119e5a5a74df77abf64203473364509f7732';
+const response = await fetch(`https://mempool.space/api/v1/block/${blockHash}`);
+const block = await response.json();
+console.log(block);
+```
+
+```python Python
+import requests
+
+block_hash = '000000000000000000076c036ff5119e5a5a74df77abf64203473364509f7732'
+response = requests.get(f'https://mempool.space/api/v1/block/{block_hash}')
+block = response.json()
+print(block)
+```
+</CodeGroup>
+
+<ParamField path="hash" type="string" required>
+  Block hash (64 character hex string)
+</ParamField>
+
+<ResponseField name="block" type="Block">
+  Block object with complete details (see Block Object structure above)
+</ResponseField>
+
+---
+
+## Get Block Transactions
+
+Retrieve transactions in a specific block.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/block/000000000000000000076c036ff5119e5a5a74df77abf64203473364509f7732/txs"
+```
+
+```javascript JavaScript
+const blockHash = '000000000000000000076c036ff5119e5a5a74df77abf64203473364509f7732';
+const response = await fetch(`https://mempool.space/api/v1/block/${blockHash}/txs`);
+const transactions = await response.json();
+console.log(transactions);
+```
+
+```python Python
+import requests
+
+block_hash = '000000000000000000076c036ff5119e5a5a74df77abf64203473364509f7732'
+response = requests.get(f'https://mempool.space/api/v1/block/{block_hash}/txs')
+transactions = response.json()
+print(transactions)
+```
+</CodeGroup>
+
+<ParamField path="hash" type="string" required>
+  Block hash (64 character hex string)
+</ParamField>
+
+<ParamField path="index" type="number" optional>
+  Starting index for pagination (defaults to 0). Returns 10 transactions per page.
+</ParamField>
+
+<ResponseField name="transactions" type="Transaction[]">
+  Array of transaction objects in the block
+  
+  <Expandable title="Transaction Object">
+    <ResponseField name="txid" type="string">
+      Transaction ID
+    </ResponseField>
+    
+    <ResponseField name="version" type="number">
+      Transaction version
+    </ResponseField>
+    
+    <ResponseField name="locktime" type="number">
+      Transaction locktime
+    </ResponseField>
+    
+    <ResponseField name="size" type="number">
+      Transaction size in bytes
+    </ResponseField>
+    
+    <ResponseField name="weight" type="number">
+      Transaction weight (segwit)
+    </ResponseField>
+    
+    <ResponseField name="fee" type="number">
+      Transaction fee in satoshis
+    </ResponseField>
+    
+    <ResponseField name="vin" type="Vin[]">
+      Array of transaction inputs
+    </ResponseField>
+    
+    <ResponseField name="vout" type="Vout[]">
+      Array of transaction outputs
+    </ResponseField>
+    
+    <ResponseField name="status" type="Status">
+      Transaction confirmation status
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## Get Block Transaction IDs
+
+Retrieve only the transaction IDs in a specific block.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/block/000000000000000000076c036ff5119e5a5a74df77abf64203473364509f7732/txids"
+```
+
+```javascript JavaScript
+const blockHash = '000000000000000000076c036ff5119e5a5a74df77abf64203473364509f7732';
+const response = await fetch(`https://mempool.space/api/v1/block/${blockHash}/txids`);
+const txids = await response.json();
+console.log(txids);
+```
+
+```python Python
+import requests
+
+block_hash = '000000000000000000076c036ff5119e5a5a74df77abf64203473364509f7732'
+response = requests.get(f'https://mempool.space/api/v1/block/{block_hash}/txids')
+txids = response.json()
+print(txids)
+```
+</CodeGroup>
+
+<ParamField path="hash" type="string" required>
+  Block hash (64 character hex string)
+</ParamField>
+
+<ResponseField name="txids" type="string[]">
+  Array of transaction IDs in the block
+</ResponseField>
+
+---
+
+## Get Block Header
+
+Retrieve the raw block header as a hex string.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/block/000000000000000000076c036ff5119e5a5a74df77abf64203473364509f7732/header"
+```
+
+```javascript JavaScript
+const blockHash = '000000000000000000076c036ff5119e5a5a74df77abf64203473364509f7732';
+const response = await fetch(`https://mempool.space/api/v1/block/${blockHash}/header`);
+const header = await response.text();
+console.log(header);
+```
+
+```python Python
+import requests
+
+block_hash = '000000000000000000076c036ff5119e5a5a74df77abf64203473364509f7732'
+response = requests.get(f'https://mempool.space/api/v1/block/{block_hash}/header')
+header = response.text
+print(header)
+```
+</CodeGroup>
+
+<ParamField path="hash" type="string" required>
+  Block hash (64 character hex string)
+</ParamField>
+
+<ResponseField name="header" type="string">
+  Raw block header as hexadecimal string
+</ResponseField>
+
+---
+
+## Get Block at Height Hash
+
+Retrieve the block hash at a specific height.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/block-height/800000"
+```
+
+```javascript JavaScript
+const height = 800000;
+const response = await fetch(`https://mempool.space/api/v1/block-height/${height}`);
+const blockHash = await response.text();
+console.log(blockHash);
+```
+
+```python Python
+import requests
+
+height = 800000
+response = requests.get(f'https://mempool.space/api/v1/block-height/{height}')
+block_hash = response.text
+print(block_hash)
+```
+</CodeGroup>
+
+<ParamField path="height" type="number" required>
+  Block height
+</ParamField>
+
+<ResponseField name="hash" type="string">
+  Block hash at the specified height
+</ResponseField>
+
+---
+
+## Get Blocks Tip Height
+
+Retrieve the current blockchain tip height.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/blocks/tip/height"
+```
+
+```javascript JavaScript
+const response = await fetch('https://mempool.space/api/v1/blocks/tip/height');
+const height = await response.text();
+console.log(height);
+```
+
+```python Python
+import requests
+
+response = requests.get('https://mempool.space/api/v1/blocks/tip/height')
+height = response.text
+print(height)
+```
+</CodeGroup>
+
+<ResponseField name="height" type="string">
+  Current blockchain tip height as a string
+</ResponseField>
+
+---
+
+## Get Blocks Tip Hash
+
+Retrieve the current blockchain tip hash.
+
+<CodeGroup>
+```bash cURL
+curl "https://mempool.space/api/v1/blocks/tip/hash"
+```
+
+```javascript JavaScript
+const response = await fetch('https://mempool.space/api/v1/blocks/tip/hash');
+const hash = await response.text();
+console.log(hash);
+```
+
+```python Python
+import requests
+
+response = requests.get('https://mempool.space/api/v1/blocks/tip/hash')
+hash_value = response.text
+print(hash_value)
+```
+</CodeGroup>
+
+<ResponseField name="hash" type="string">
+  Current blockchain tip hash
+</ResponseField>

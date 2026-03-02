@@ -1,0 +1,332 @@
+---
+title: 'Authentication'
+description: 'Authentication and authorization for the Mempool API'
+icon: 'key'
+---
+
+## No Authentication Required
+
+The Mempool API is designed to be **publicly accessible** and does not require authentication for standard read operations. This makes it easy to integrate Bitcoin data into your applications without managing API keys or tokens.
+
+<Note>
+  All public endpoints are available without any authentication headers or API keys.
+</Note>
+
+## Public Endpoints
+
+The following categories of endpoints are freely accessible:
+
+### Read Operations
+
+All GET endpoints are publicly accessible without authentication:
+
+- **Transactions** - Query transaction data, status, and outspends
+- **Addresses** - Get address information, balances, and transaction history
+- **Blocks** - Retrieve block data and headers
+- **Mining** - Access mining statistics and pool information
+- **Fees** - Get real-time fee recommendations
+- **Mempool** - View current mempool state
+- **Lightning Network** - Query Lightning Network data
+- **Statistics** - Access historical statistics
+
+<CodeGroup>
+```bash No Auth Required
+# Simple GET request - no authentication needed
+curl https://mempool.space/api/v1/blocks/tip/height
+
+# Returns: 825000
+```
+
+```javascript JavaScript Example
+// No authentication needed
+fetch('https://mempool.space/api/v1/fees/recommended')
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+
+```python Python Example
+import requests
+
+# No authentication headers required
+response = requests.get('https://mempool.space/api/v1/difficulty-adjustment')
+data = response.json()
+print(data)
+```
+</CodeGroup>
+
+## Write Operations
+
+### Transaction Broadcasting
+
+The API supports broadcasting transactions to the Bitcoin network without authentication:
+
+<CodeGroup>
+```bash POST /tx
+# Broadcast a raw transaction (no auth required)
+curl -X POST \
+  https://mempool.space/api/v1/tx \
+  -H 'Content-Type: text/plain' \
+  -d '0200000001...'
+
+# Returns: transaction_id
+```
+
+```bash POST /tx/push
+# Broadcast via form data (no auth required)
+curl -X POST \
+  https://mempool.space/api/v1/tx/push \
+  -d 'tx=0200000001...'
+
+# Returns: transaction_id
+```
+</CodeGroup>
+
+<Warning>
+  **Transaction Size Limits**
+  
+  Transactions must not exceed the maximum size limit. The backend configuration sets `MAX_PUSH_TX_SIZE_WEIGHT` to control transaction weight limits.
+</Warning>
+
+### Package Submission
+
+For advanced users, the API supports package submission (Bitcoin Core 28+):
+
+```bash POST /txs/package
+curl -X POST \
+  https://mempool.space/api/v1/txs/package \
+  -H 'Content-Type: application/json' \
+  -d '[
+    "0200000001...",
+    "0200000001..."
+  ]'
+```
+
+## Backend Requirements
+
+### Backend Types
+
+The Mempool backend can be configured with different Bitcoin data sources:
+
+| Backend | Description | Address Lookups |
+|---------|-------------|----------------|
+| **esplora** | Mempool/electrs backend | ✅ Supported |
+| **electrum** | Electrum server backend | ✅ Supported |
+| **none** | Direct Bitcoin Core only | ❌ Not supported |
+
+<Note>
+  When the backend is set to `none` (Bitcoin Core only), certain endpoints like address lookups return a `405 Method Not Allowed` error.
+</Note>
+
+### Endpoint Availability
+
+Some endpoints require specific backend configurations:
+
+#### Address Endpoints (Requires esplora or electrum)
+
+```bash Example Error
+curl https://mempool.space/api/v1/address/1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
+
+# With backend=none, returns:
+{
+  "error": "Address lookups cannot be used with bitcoind as backend."
+}
+```
+
+#### Summary Endpoints (Requires esplora)
+
+```bash Esplora Only
+# These endpoints require mempool/electrs backend
+GET /address/{address}/txs/summary
+GET /scripthash/{scripthash}/txs/summary
+```
+
+## Service-Specific Endpoints
+
+Certain advanced features require additional service configuration:
+
+### Acceleration Services
+
+<Warning>
+  **Limited Availability**
+  
+  Acceleration endpoints are only available:
+  - When `MEMPOOL_SERVICES.ACCELERATIONS` is enabled
+  - On Bitcoin mainnet (not available on testnet, signet, liquid, etc.)
+</Warning>
+
+```bash Acceleration Request
+POST /api/v1/acceleration/request/{txid}
+
+# Returns 400 if not configured:
+{
+  "error": "Acceleration data is not available."
+}
+```
+
+### Historical Prices
+
+Price data is only available on mainnet:
+
+```bash Price Endpoint
+GET /api/v1/historical-price?timestamp=1234567890&currency=USD
+
+# On testnet returns:
+{
+  "error": "Prices are not available on testnets."
+}
+```
+
+## CORS Support
+
+The Mempool API includes full Cross-Origin Resource Sharing (CORS) support:
+
+```http
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Accept,Authorization,Cache-Control,Content-Type,DNT,If-Modified-Since,Keep-Alive,Origin,User-Agent,X-Requested-With
+Access-Control-Expose-Headers: X-Total-Count,X-Mempool-Auth
+```
+
+<Note>
+  All origins are allowed (`*`), making the API accessible from any web application without CORS issues.
+</Note>
+
+## Request Headers
+
+No special headers are required for most requests:
+
+```bash Standard Request
+curl -X GET \
+  https://mempool.space/api/v1/blocks/tip/height
+```
+
+For POST requests with JSON data:
+
+```bash JSON POST Request
+curl -X POST \
+  https://mempool.space/api/v1/prevouts \
+  -H 'Content-Type: application/json' \
+  -d '[{"txid":"abc...","vout":0}]'
+```
+
+For broadcasting transactions:
+
+```bash Transaction Broadcast
+curl -X POST \
+  https://mempool.space/api/v1/tx \
+  -H 'Content-Type: text/plain' \
+  -d '0200000001...'
+```
+
+## Self-Hosted API Access
+
+If you're running your own Mempool instance:
+
+<Steps>
+  <Step title="Configure Your Backend">
+    Set up `MEMPOOL.BACKEND` in your configuration:
+    - `esplora` - Full functionality including address lookups
+    - `electrum` - Full functionality via Electrum server
+    - `none` - Limited to Bitcoin Core RPC capabilities
+  </Step>
+  
+  <Step title="Set API URL Prefix">
+    The default API prefix is `/api/v1/` and can be configured via `MEMPOOL.API_URL_PREFIX`.
+  </Step>
+  
+  <Step title="Configure Services">
+    Enable optional services like accelerations in `MEMPOOL_SERVICES` configuration.
+  </Step>
+  
+  <Step title="Access Your API">
+    Your API will be available at: `http://your-domain.com/api/v1/`
+  </Step>
+</Steps>
+
+## Security Considerations
+
+### No Sensitive Operations
+
+The API does not expose any sensitive operations that would require authentication:
+
+- ✅ **Read-only data access** - Blockchain and mempool data is public
+- ✅ **Transaction broadcasting** - Standard Bitcoin network operation
+- ✅ **No private data** - API does not store user-specific information
+- ✅ **No write access** - Cannot modify blockchain or database state
+
+### Input Validation
+
+All inputs are validated using regex patterns:
+
+```typescript Validation Patterns
+// Transaction IDs
+TXID_REGEX = /^[a-f0-9]{64}$/i
+
+// Block hashes
+BLOCK_HASH_REGEX = /^[a-f0-9]{64}$/i
+
+// Addresses
+ADDRESS_REGEX = /^[a-z0-9]{2,120}$/i
+
+// Script hashes
+SCRIPT_HASH_REGEX = /^([a-f0-9]{2})+$/i
+```
+
+<Warning>
+  Invalid inputs return `400 Bad Request` or `501 Not Implemented` with descriptive error messages.
+</Warning>
+
+## Rate Limiting
+
+While no authentication is required, the API implements rate limiting to ensure fair usage. See the [Rate Limits](/api/rate-limits) documentation for details.
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use Appropriate HTTP Methods">
+    - Use `GET` for reading data
+    - Use `POST` for broadcasting transactions and submitting data
+    - Handle `OPTIONS` requests for CORS preflight
+  </Accordion>
+  
+  <Accordion title="Handle Errors Gracefully">
+    Check HTTP status codes and parse error messages from the JSON response:
+    ```javascript
+    fetch('https://mempool.space/api/v1/tx/' + txid)
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(err => {
+            throw new Error(err.error || 'API Error');
+          });
+        }
+        return response.json();
+      })
+      .catch(error => console.error('Error:', error));
+    ```
+  </Accordion>
+  
+  <Accordion title="Respect Backend Limitations">
+    Check which backend your target instance is using and adjust your application accordingly. Some features require specific backends.
+  </Accordion>
+  
+  <Accordion title="Cache Responses">
+    Many endpoints include cache headers. Respect these to reduce load:
+    ```http
+    Expires: Thu, 02 Mar 2026 22:30:00 GMT
+    Cache-Control: public
+    Pragma: public
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Rate Limits" icon="gauge" href="/api/rate-limits">
+    Learn about API rate limiting policies
+  </Card>
+  
+  <Card title="API Reference" icon="book" href="/api/blockchain/transactions">
+    Explore available endpoints
+  </Card>
+</CardGroup>

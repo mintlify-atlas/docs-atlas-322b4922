@@ -1,0 +1,253 @@
+---
+title: 'Difficulty Adjustments'
+description: 'Retrieve Bitcoin network difficulty adjustment history and block metrics'
+---
+
+## Get Difficulty Adjustments
+
+<CodeBlock title="GET /api/v1/mining/difficulty-adjustments">
+Retrieves all historical difficulty adjustments as an array of tuples.
+</CodeBlock>
+
+### Response
+
+Returns an array of difficulty adjustment data, where each element is an array containing:
+`[timestamp, height, difficulty, adjustment]`
+
+<ResponseField name="response" type="array">
+  Array of difficulty adjustment tuples
+  <Expandable title="tuple format">
+    <ResponseField name="[0]" type="number">
+      Unix timestamp when the adjustment occurred
+    </ResponseField>
+    <ResponseField name="[1]" type="number">
+      Block height where the adjustment occurred
+    </ResponseField>
+    <ResponseField name="[2]" type="number">
+      New difficulty value
+    </ResponseField>
+    <ResponseField name="[3]" type="number">
+      Difficulty adjustment multiplier (e.g., 1.05 = 5% increase, 0.95 = 5% decrease)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+```bash cURL
+curl "https://mempool.space/api/v1/mining/difficulty-adjustments"
+```
+
+### Example Response
+
+```json
+[
+  [1709200000, 835008, 79351228131136.77, 1.02],
+  [1708387200, 833024, 77801335088391.94, 0.98],
+  [1707574400, 831040, 79389539582920.56, 1.04]
+]
+```
+
+---
+
+## Get Difficulty Adjustments by Interval
+
+<CodeBlock title="GET /api/v1/mining/difficulty-adjustments/:interval">
+Retrieves difficulty adjustments for a specified time interval.
+</CodeBlock>
+
+### Path Parameters
+
+<ParamField path="interval" type="string" required>
+  Time interval for difficulty data. Supported values:
+  - `24h` - Last 24 hours
+  - `3d` - Last 3 days
+  - `1w` - Last week
+  - `1m` - Last month
+  - `3m` - Last 3 months
+  - `6m` - Last 6 months
+  - `1y` - Last year
+  - `2y` - Last 2 years
+  - `3y` - Last 3 years
+  - `4y` - Last 4 years
+</ParamField>
+
+### Response
+
+Same format as the all-time endpoint, but filtered to the specified interval.
+
+### Example Request
+
+```bash cURL
+curl "https://mempool.space/api/v1/mining/difficulty-adjustments/1y"
+```
+
+---
+
+## Get Historical Block Sizes and Weights
+
+<CodeBlock title="GET /api/v1/mining/blocks/sizes-weights/:interval">
+Retrieves historical block size and weight statistics over a specified time interval.
+</CodeBlock>
+
+### Path Parameters
+
+<ParamField path="interval" type="string" required>
+  Time interval for block data. Same values as difficulty adjustments.
+</ParamField>
+
+### Response
+
+<ResponseField name="sizes" type="array">
+  Array of historical block size data points
+</ResponseField>
+
+<ResponseField name="weights" type="array">
+  Array of historical block weight data points
+</ResponseField>
+
+### Example Request
+
+```bash cURL
+curl "https://mempool.space/api/v1/mining/blocks/sizes-weights/1w"
+```
+
+### Example Response
+
+```json
+{
+  "sizes": [
+    {
+      "timestamp": 1709251200,
+      "avgSize": 1500000
+    }
+  ],
+  "weights": [
+    {
+      "timestamp": 1709251200,
+      "avgWeight": 3800000
+    }
+  ]
+}
+```
+
+---
+
+## Get Block Height from Timestamp
+
+<CodeBlock title="GET /api/v1/mining/blocks/timestamp/:timestamp">
+Retrieves the block height for a given timestamp.
+</CodeBlock>
+
+### Path Parameters
+
+<ParamField path="timestamp" type="number" required>
+  Unix timestamp in seconds. Must be a valid integer representing seconds (not milliseconds).
+</ParamField>
+
+### Response
+
+Returns the block height closest to the specified timestamp.
+
+### Example Request
+
+```bash cURL
+curl "https://mempool.space/api/v1/mining/blocks/timestamp/1709251200"
+```
+
+### Example Response
+
+```json
+835100
+```
+
+---
+
+## Understanding Difficulty Adjustments
+
+### What is Difficulty?
+
+Bitcoin's mining difficulty adjusts every 2016 blocks (approximately every 2 weeks) to maintain a target block time of 10 minutes. The difficulty ensures that regardless of increases or decreases in total network hashrate, blocks continue to be found at a predictable rate.
+
+### How Difficulty Adjusts
+
+The adjustment is calculated based on the time it took to mine the previous 2016 blocks:
+
+```
+New Difficulty = Old Difficulty × (20160 minutes / Actual Time)
+```
+
+- If blocks were found faster than 10 minutes on average: difficulty increases
+- If blocks were found slower than 10 minutes on average: difficulty decreases
+- Maximum adjustment per period: 4× (up or down)
+
+### Adjustment Multiplier
+
+The adjustment value in the API response represents the multiplier:
+- `1.0` = No change
+- `1.05` = 5% increase
+- `0.95` = 5% decrease
+
+### Block Size vs Weight
+
+- **Block Size**: The size of a block in bytes (maximum ~4 MB)
+- **Block Weight**: A metric introduced with SegWit that measures block capacity in weight units (maximum 4,000,000 WU)
+
+Weight calculation:
+```
+Block Weight = (Base Size × 3) + Total Size
+```
+
+Where:
+- Base Size = size of block without witness data
+- Total Size = size of complete block including witness data
+
+---
+
+## Historical Context
+
+### Difficulty Epochs
+
+Bitcoin has seen significant difficulty growth over time:
+
+- **2009-2010**: Initial difficulty around 1
+- **2013**: First major difficulty increases with ASIC miners
+- **2017**: Difficulty exceeds 1 trillion
+- **2024**: Difficulty in the 70-80 trillion range
+
+### Major Adjustments
+
+Notable difficulty adjustments include:
+- **May 2021**: ~28% decrease following China mining ban
+- **2020 Halving**: Gradual increases post-halving
+- **Bull Markets**: Typically see consistent difficulty increases
+
+---
+
+## Related Endpoints
+
+- [Network Hashrate](/api/mining/hashrate) - Hashrate data correlates with difficulty
+- [Block Rewards](/api/mining/rewards) - Reward data by block
+- [Pool Statistics](/api/mining/pools) - How pools contribute to difficulty
+
+---
+
+## Error Responses
+
+<ResponseField name="400" type="error">
+  Returned when timestamp format is invalid
+  ```json
+  {
+    "error": "Invalid timestamp, value must be Unix seconds"
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="500" type="error">
+  Returned when there's a server error fetching difficulty data
+  ```json
+  {
+    "error": "Failed to get historical difficulty adjustments"
+  }
+  ```
+</ResponseField>

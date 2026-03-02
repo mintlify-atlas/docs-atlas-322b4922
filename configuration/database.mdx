@@ -1,0 +1,694 @@
+---
+title: 'Database Configuration'
+description: 'Set up and configure MariaDB for Mempool historical data and statistics'
+icon: 'database'
+---
+
+Mempool uses MariaDB (or MySQL) to store historical blockchain data, mining statistics, and other persistent information. While the database is optional for basic mempool visualization, it's required for the full feature set.
+
+<Note>
+Mempool requires **MariaDB 10.5 or later**. MySQL 8.0+ is also supported but MariaDB is recommended.
+</Note>
+
+## Why Use a Database?
+
+The database enables:
+
+<CardGroup cols={2}>
+  <Card title="Mining Dashboard" icon="chart-line">
+    Historical hashrate, difficulty, pool statistics, and block rewards.
+  </Card>
+
+  <Card title="Block Analysis" icon="cube">
+    Block summaries, fee statistics, and transaction patterns.
+  </Card>
+
+  <Card title="Address Statistics" icon="wallet">
+    Transaction counts, balances, and address activity.
+  </Card>
+
+  <Card title="CPFP Indexing" icon="link">
+    Child Pays For Parent transaction relationships.
+  </Card>
+</CardGroup>
+
+<Warning>
+Running Mempool without a database will disable historical statistics, mining dashboard, and advanced indexing features.
+</Warning>
+
+## Installation
+
+<Tabs>
+  <Tab title="Debian/Ubuntu">
+    ### Install MariaDB on Debian/Ubuntu
+
+    <Steps>
+      <Step title="Update Package Index">
+        ```bash
+        sudo apt-get update
+        ```
+      </Step>
+
+      <Step title="Install MariaDB Server">
+        ```bash
+        sudo apt-get install mariadb-server mariadb-client
+        ```
+
+        The installer will start MariaDB automatically.
+      </Step>
+
+      <Step title="Secure Installation">
+        Run the security script to set root password and remove test databases:
+
+        ```bash
+        sudo mysql_secure_installation
+        ```
+
+        Recommended answers:
+        - Set root password: **Yes**
+        - Remove anonymous users: **Yes**
+        - Disallow root login remotely: **Yes**
+        - Remove test database: **Yes**
+        - Reload privilege tables: **Yes**
+      </Step>
+
+      <Step title="Verify Installation">
+        ```bash
+        sudo systemctl status mariadb
+        mariadb --version
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="RHEL/CentOS/Fedora">
+    ### Install MariaDB on RHEL/CentOS/Fedora
+
+    <Steps>
+      <Step title="Install MariaDB Server">
+        ```bash
+        # RHEL/CentOS 8+
+        sudo dnf install mariadb-server
+
+        # Older versions
+        sudo yum install mariadb-server
+        ```
+      </Step>
+
+      <Step title="Start and Enable Service">
+        ```bash
+        sudo systemctl start mariadb
+        sudo systemctl enable mariadb
+        ```
+      </Step>
+
+      <Step title="Secure Installation">
+        ```bash
+        sudo mysql_secure_installation
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="macOS">
+    ### Install MariaDB on macOS
+
+    <Steps>
+      <Step title="Install via Homebrew">
+        ```bash
+        brew install mariadb
+        ```
+      </Step>
+
+      <Step title="Start MariaDB">
+        ```bash
+        # Start now
+        brew services start mariadb
+
+        # Or start once (doesn't restart at login)
+        mysql.server start
+        ```
+      </Step>
+
+      <Step title="Secure Installation">
+        ```bash
+        mysql_secure_installation
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Docker">
+    ### Run MariaDB in Docker
+
+    **Docker Compose Configuration:**
+
+    ```yaml
+    version: '3.7'
+
+    services:
+      mariadb:
+        image: mariadb:10.11
+        environment:
+          MYSQL_ROOT_PASSWORD: your_root_password
+          MYSQL_DATABASE: mempool
+          MYSQL_USER: mempool
+          MYSQL_PASSWORD: mempool
+        volumes:
+          - mariadb_data:/var/lib/mysql
+        ports:
+          - "3306:3306"
+        restart: always
+        command:
+          - --max_connections=200
+          - --innodb_buffer_pool_size=2G
+
+    volumes:
+      mariadb_data:
+    ```
+
+    **Start the Container:**
+    ```bash
+    docker-compose up -d mariadb
+    ```
+
+    <Note>
+    When using Docker, adjust `innodb_buffer_pool_size` based on available RAM (25-50% of total RAM recommended).
+    </Note>
+  </Tab>
+</Tabs>
+
+## Database Setup
+
+Create a dedicated database and user for Mempool:
+
+<Steps>
+  <Step title="Connect to MariaDB">
+    Connect as root user:
+
+    ```bash
+    sudo mariadb
+    # or
+    mysql -u root -p
+    ```
+  </Step>
+
+  <Step title="Create Database">
+    Create the `mempool` database:
+
+    ```sql
+    CREATE DATABASE mempool;
+    ```
+
+    Verify:
+    ```sql
+    SHOW DATABASES;
+    ```
+  </Step>
+
+  <Step title="Create User and Grant Privileges">
+    Create a dedicated user with appropriate permissions:
+
+    ```sql
+    -- For local connections only
+    CREATE USER 'mempool'@'localhost' IDENTIFIED BY 'your_secure_password';
+    GRANT ALL PRIVILEGES ON mempool.* TO 'mempool'@'localhost';
+
+    -- For remote connections (adjust host as needed)
+    CREATE USER 'mempool'@'%' IDENTIFIED BY 'your_secure_password';
+    GRANT ALL PRIVILEGES ON mempool.* TO 'mempool'@'%';
+
+    -- Apply changes
+    FLUSH PRIVILEGES;
+    ```
+
+    <Warning>
+    Use a strong, unique password for the database user. Never use default passwords like "mempool" in production.
+    </Warning>
+  </Step>
+
+  <Step title="Test Connection">
+    Test the new user can connect:
+
+    ```bash
+    mariadb -u mempool -p mempool
+    ```
+
+    Enter the password when prompted. You should see the MariaDB prompt.
+  </Step>
+
+  <Step title="Exit MariaDB">
+    ```sql
+    EXIT;
+    ```
+  </Step>
+</Steps>
+
+## Mempool Configuration
+
+Configure Mempool to use your MariaDB database.
+
+<Tabs>
+  <Tab title="Local Database">
+    ### Local Database Configuration
+
+    Configure in `mempool-config.json`:
+
+    ```json
+    {
+      "DATABASE": {
+        "ENABLED": true,
+        "HOST": "127.0.0.1",
+        "SOCKET": "",
+        "PORT": 3306,
+        "DATABASE": "mempool",
+        "USERNAME": "mempool",
+        "PASSWORD": "your_secure_password",
+        "TIMEOUT": 180000,
+        "PID_DIR": "",
+        "POOL_SIZE": 100
+      }
+    }
+    ```
+
+    | Parameter | Description |
+    |-----------|-------------|
+    | `ENABLED` | Enable/disable database functionality |
+    | `HOST` | Database host (use `127.0.0.1` for localhost) |
+    | `SOCKET` | Unix socket path (alternative to HOST/PORT) |
+    | `PORT` | Database port (default: `3306`) |
+    | `DATABASE` | Database name |
+    | `USERNAME` | Database username |
+    | `PASSWORD` | Database password |
+    | `TIMEOUT` | Query timeout in milliseconds |
+    | `PID_DIR` | Process ID directory |
+    | `POOL_SIZE` | Connection pool size |
+  </Tab>
+
+  <Tab title="Unix Socket">
+    ### Unix Socket Configuration
+
+    For better performance on local connections, use Unix sockets:
+
+    ```json
+    {
+      "DATABASE": {
+        "ENABLED": true,
+        "HOST": "",
+        "SOCKET": "/var/run/mysqld/mysqld.sock",
+        "PORT": 0,
+        "DATABASE": "mempool",
+        "USERNAME": "mempool",
+        "PASSWORD": "your_secure_password",
+        "TIMEOUT": 180000,
+        "POOL_SIZE": 100
+      }
+    }
+    ```
+
+    **Common Socket Paths:**
+    - Debian/Ubuntu: `/var/run/mysqld/mysqld.sock`
+    - RHEL/CentOS: `/var/lib/mysql/mysql.sock`
+    - macOS (Homebrew): `/tmp/mysql.sock`
+
+    <Note>
+    Ensure the Mempool backend user has permission to access the socket file.
+    </Note>
+  </Tab>
+
+  <Tab title="Remote Database">
+    ### Remote Database Configuration
+
+    Connect to a remote MariaDB server:
+
+    ```json
+    {
+      "DATABASE": {
+        "ENABLED": true,
+        "HOST": "db.example.com",
+        "SOCKET": "",
+        "PORT": 3306,
+        "DATABASE": "mempool",
+        "USERNAME": "mempool",
+        "PASSWORD": "your_secure_password",
+        "TIMEOUT": 180000,
+        "POOL_SIZE": 50
+      }
+    }
+    ```
+
+    **Remote Database Considerations:**
+    - Use SSL/TLS for connections over untrusted networks
+    - Configure firewall to allow connections from Mempool backend
+    - Grant user privileges with appropriate host
+    - Increase `TIMEOUT` for slower network connections
+    - Reduce `POOL_SIZE` to limit network connections
+  </Tab>
+
+  <Tab title="Docker">
+    ### Docker Environment Variables
+
+    Configure database connection via environment variables:
+
+    ```yaml
+    api:
+      environment:
+        DATABASE_ENABLED: "true"
+        DATABASE_HOST: "mariadb"  # Container name
+        DATABASE_PORT: "3306"
+        DATABASE_DATABASE: "mempool"
+        DATABASE_USERNAME: "mempool"
+        DATABASE_PASSWORD: "mempool"
+        DATABASE_TIMEOUT: "180000"
+        DATABASE_POOL_SIZE: "100"
+      depends_on:
+        - mariadb
+    ```
+
+    **Complete Docker Compose Example:**
+    ```yaml
+    version: '3.7'
+
+    services:
+      mariadb:
+        image: mariadb:10.11
+        environment:
+          MYSQL_DATABASE: mempool
+          MYSQL_USER: mempool
+          MYSQL_PASSWORD: mempool
+          MYSQL_ROOT_PASSWORD: admin
+        volumes:
+          - mariadb_data:/var/lib/mysql
+        restart: always
+
+      api:
+        image: mempool/backend:latest
+        environment:
+          DATABASE_ENABLED: "true"
+          DATABASE_HOST: "mariadb"
+          DATABASE_PORT: "3306"
+          DATABASE_DATABASE: "mempool"
+          DATABASE_USERNAME: "mempool"
+          DATABASE_PASSWORD: "mempool"
+        depends_on:
+          - mariadb
+        restart: always
+
+    volumes:
+      mariadb_data:
+    ```
+  </Tab>
+</Tabs>
+
+## Database Schema
+
+Mempool automatically creates and maintains its database schema. No manual table creation is needed.
+
+<Accordion title="Initial Schema Migration">
+  When you first start the Mempool backend with database enabled, it will:
+
+  1. Detect the database is empty
+  2. Create all required tables
+  3. Set up indexes and constraints
+  4. Begin indexing historical data
+
+  **Tables Created:**
+  - `blocks` - Block information and statistics
+  - `transactions` - Transaction data
+  - `addresses` - Address information
+  - `elements_pegs` - Liquid peg data (Liquid network only)
+  - `hashrates` - Mining hashrate data
+  - `prices` - Bitcoin price history
+  - `pools` - Mining pool information
+  - And more...
+
+  <Note>
+  Initial indexing can take several hours to days depending on `INDEXING_BLOCKS_AMOUNT` setting and hardware.
+  </Note>
+</Accordion>
+
+## Performance Tuning
+
+<AccordionGroup>
+  <Accordion title="MariaDB Configuration">
+    Optimize MariaDB for Mempool workload by editing `/etc/mysql/mariadb.conf.d/50-server.cnf` (path may vary):
+
+    ```ini
+    [mysqld]
+    # Memory settings (adjust based on available RAM)
+    innodb_buffer_pool_size = 4G      # 50-70% of available RAM
+    innodb_log_file_size = 512M
+    innodb_flush_log_at_trx_commit = 2
+    innodb_flush_method = O_DIRECT
+
+    # Connection settings
+    max_connections = 200
+    max_connect_errors = 100000
+
+    # Query cache (disabled in MariaDB 10.11+)
+    # query_cache_size = 0
+    # query_cache_type = 0
+
+    # InnoDB settings
+    innodb_file_per_table = 1
+    innodb_buffer_pool_instances = 4  # Use 1 per GB of buffer pool
+    innodb_read_io_threads = 4
+    innodb_write_io_threads = 4
+    innodb_io_capacity = 2000
+    innodb_io_capacity_max = 4000
+
+    # Logging
+    slow_query_log = 1
+    slow_query_log_file = /var/log/mysql/slow.log
+    long_query_time = 2
+
+    # Binary logging (optional, for replication)
+    # log_bin = /var/log/mysql/mysql-bin.log
+    # expire_logs_days = 7
+    # max_binlog_size = 100M
+    ```
+
+    **After Changes:**
+    ```bash
+    sudo systemctl restart mariadb
+    ```
+
+    <Warning>
+    Test configuration changes on development environment first. Incorrect settings can prevent MariaDB from starting.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Connection Pooling">
+    Optimize connection pool size in `mempool-config.json`:
+
+    ```json
+    {
+      "DATABASE": {
+        "POOL_SIZE": 100
+      }
+    }
+    ```
+
+    **Guidelines:**
+    - Single backend instance: 50-100 connections
+    - Multiple backend instances: Divide pool size by instance count
+    - High-traffic production: 100-200 connections
+    - Monitor with `SHOW PROCESSLIST;` to find optimal size
+
+    **Check Active Connections:**
+    ```sql
+    SHOW STATUS LIKE 'Threads_connected';
+    SHOW STATUS LIKE 'Max_used_connections';
+    ```
+  </Accordion>
+
+  <Accordion title="Index Optimization">
+    Mempool maintains indexes automatically, but you can optimize them periodically:
+
+    ```sql
+    -- Analyze tables for query optimization
+    ANALYZE TABLE blocks, transactions, addresses, hashrates;
+
+    -- Optimize tables (defragment and reclaim space)
+    OPTIMIZE TABLE blocks, transactions, addresses, hashrates;
+    ```
+
+    **Automate with Cron:**
+    ```bash
+    # Weekly optimization (runs Sunday at 3 AM)
+    0 3 * * 0 mysqlcheck -u mempool -p'password' --optimize --databases mempool
+    ```
+  </Accordion>
+
+  <Accordion title="Monitoring">
+    Monitor database performance:
+
+    **Check Database Size:**
+    ```sql
+    SELECT 
+      table_schema AS 'Database',
+      ROUND(SUM(data_length + index_length) / 1024 / 1024 / 1024, 2) AS 'Size (GB)'
+    FROM information_schema.tables
+    WHERE table_schema = 'mempool'
+    GROUP BY table_schema;
+    ```
+
+    **Check Table Sizes:**
+    ```sql
+    SELECT 
+      table_name AS 'Table',
+      ROUND(((data_length + index_length) / 1024 / 1024), 2) AS 'Size (MB)'
+    FROM information_schema.TABLES
+    WHERE table_schema = 'mempool'
+    ORDER BY (data_length + index_length) DESC;
+    ```
+
+    **Monitor Query Performance:**
+    ```sql
+    -- Show slow queries
+    SELECT * FROM mysql.slow_log ORDER BY query_time DESC LIMIT 10;
+
+    -- Show current queries
+    SHOW FULL PROCESSLIST;
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Maintenance Tasks
+
+<AccordionGroup>
+  <Accordion title="Backup Database">
+    Regular backups are essential for production deployments.
+
+    **Full Backup:**
+    ```bash
+    mysqldump -u mempool -p mempool > mempool_backup_$(date +%Y%m%d).sql
+    ```
+
+    **Compressed Backup:**
+    ```bash
+    mysqldump -u mempool -p mempool | gzip > mempool_backup_$(date +%Y%m%d).sql.gz
+    ```
+
+    **Automated Daily Backup Script:**
+    ```bash
+    #!/bin/bash
+    BACKUP_DIR="/backups/mempool"
+    DATE=$(date +%Y%m%d_%H%M%S)
+    mkdir -p $BACKUP_DIR
+    
+    mysqldump -u mempool -p'password' mempool | gzip > $BACKUP_DIR/mempool_$DATE.sql.gz
+    
+    # Keep only last 7 days
+    find $BACKUP_DIR -name "mempool_*.sql.gz" -mtime +7 -delete
+    ```
+
+    **Restore from Backup:**
+    ```bash
+    # Uncompressed
+    mysql -u mempool -p mempool < mempool_backup.sql
+
+    # Compressed
+    gunzip < mempool_backup.sql.gz | mysql -u mempool -p mempool
+    ```
+  </Accordion>
+
+  <Accordion title="Re-index Tables">
+    Force re-indexing of specific tables using Mempool's `--reindex` flag:
+
+    ```bash
+    cd backend
+    npm run start -- --reindex=blocks,hashrates
+    ```
+
+    **Available Tables for Re-indexing:**
+    - `blocks` - Block information
+    - `hashrates` - Mining hashrate data
+    - `prices` - Price history
+    - `pools` - Mining pool information
+
+    <Warning>
+    Re-indexing truncates the table and rebuilds data from scratch. This operation can take hours to complete.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Update Mining Pools">
+    Manually update mining pool data:
+
+    ```bash
+    cd backend
+    npm run start -- --update-pools
+    ```
+
+    This fetches the latest mining pool information from GitHub and re-assigns blocks to pools.
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Connection Failed">
+    **Symptom:** `Error: connect ECONNREFUSED 127.0.0.1:3306`
+
+    **Solutions:**
+    1. Verify MariaDB is running: `sudo systemctl status mariadb`
+    2. Check listening port: `netstat -tlnp | grep 3306`
+    3. Verify credentials in `mempool-config.json`
+    4. Test connection: `mysql -u mempool -p -h 127.0.0.1`
+    5. Check MariaDB error log: `/var/log/mysql/error.log`
+  </Accordion>
+
+  <Accordion title="Access Denied">
+    **Symptom:** `Error: Access denied for user 'mempool'@'localhost'`
+
+    **Solutions:**
+    1. Verify password is correct
+    2. Check user exists: `SELECT user, host FROM mysql.user WHERE user='mempool';`
+    3. Verify privileges: `SHOW GRANTS FOR 'mempool'@'localhost';`
+    4. Grant privileges again: `GRANT ALL PRIVILEGES ON mempool.* TO 'mempool'@'localhost';`
+    5. Flush privileges: `FLUSH PRIVILEGES;`
+  </Accordion>
+
+  <Accordion title="Too Many Connections">
+    **Symptom:** `Error: Too many connections`
+
+    **Solutions:**
+    1. Check current connections: `SHOW PROCESSLIST;`
+    2. Increase `max_connections` in MariaDB config
+    3. Reduce `POOL_SIZE` in Mempool config
+    4. Kill idle connections: `KILL <process_id>;`
+    5. Restart MariaDB: `sudo systemctl restart mariadb`
+  </Accordion>
+
+  <Accordion title="Slow Queries">
+    **Symptom:** Database queries taking too long
+
+    **Solutions:**
+    1. Increase `innodb_buffer_pool_size`
+    2. Enable slow query log to identify problematic queries
+    3. Optimize tables: `OPTIMIZE TABLE tablename;`
+    4. Analyze tables: `ANALYZE TABLE tablename;`
+    5. Use faster storage (SSD/NVMe)
+    6. Increase `DATABASE_TIMEOUT` in Mempool config
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Backend Configuration" icon="server" href="/configuration/backend-config">
+    Complete backend configuration and enable indexing
+  </Card>
+  
+  <Card title="Bitcoin Core" icon="bitcoin" href="/configuration/bitcoin-core">
+    Optimize Bitcoin Core for database indexing
+  </Card>
+  
+  <Card title="MariaDB Documentation" icon="book" href="https://mariadb.org/documentation/">
+    Learn more about MariaDB administration
+  </Card>
+  
+  <Card title="Production Deployment" icon="rocket" href="/installation/production">
+    Deploy Mempool to production
+  </Card>
+</CardGroup>

@@ -1,0 +1,807 @@
+---
+title: 'Testing Guide'
+description: 'Running tests and ensuring code quality in Mempool'
+icon: 'vial'
+---
+
+Mempool uses comprehensive testing strategies to ensure code quality and reliability. This guide covers unit tests, integration tests, end-to-end tests, and best practices.
+
+## Overview
+
+Mempool testing is split between backend and frontend:
+
+<CardGroup cols={2}>
+  <Card title="Backend Testing" icon="server">
+    - **Framework**: Jest
+    - **Types**: Unit, Integration
+    - **Coverage**: Enabled
+  </Card>
+  <Card title="Frontend Testing" icon="browser">
+    - **Framework**: Karma/Jasmine, Cypress
+    - **Types**: Unit, E2E
+    - **Browsers**: Chrome, Firefox, Edge
+  </Card>
+</CardGroup>
+
+---
+
+## Backend Testing
+
+The backend uses **Jest** as the primary testing framework with TypeScript support.
+
+### Running Tests
+
+<Tabs>
+  <Tab title="Unit Tests">
+    Run all unit tests:
+
+    ```bash
+    cd backend
+    npm test
+    ```
+
+    Run specific test file:
+
+    ```bash
+    npm test -- path/to/test.test.ts
+    ```
+
+    Run tests in watch mode:
+
+    ```bash
+    npm test -- --watch
+    ```
+  </Tab>
+
+  <Tab title="Integration Tests">
+    Integration tests require a running database:
+
+    ```bash
+    npm run test:integration
+    ```
+
+    <Note>
+      These tests run against a real database. Ensure your test database is configured in `mempool-config.json`.
+    </Note>
+  </Tab>
+
+  <Tab title="With Coverage">
+    Generate coverage reports:
+
+    ```bash
+    npm test
+    ```
+
+    Coverage reports are generated in `coverage/` directory.
+
+    View HTML coverage report:
+
+    ```bash
+    open coverage/lcov-report/index.html
+    ```
+  </Tab>
+
+  <Tab title="CI Mode">
+    Run tests in CI environment:
+
+    ```bash
+    npm run test:ci
+    ```
+
+    This sets `CI=true` and generates coverage reports.
+  </Tab>
+</Tabs>
+
+### Test Structure
+
+Backend tests are located in:
+
+```
+backend/
+├── src/
+│   ├── __tests__/              # Unit tests
+│   │   ├── api/
+│   │   ├── utils/
+│   │   └── *.test.ts
+│   ├── __integration_tests__/  # Integration tests
+│   │   └── *.integration.test.ts
+│   └── __fixtures__/           # Test data
+│       └── *.json
+└── jest.config.js
+```
+
+### Writing Backend Tests
+
+<AccordionGroup>
+  <Accordion title="Unit Test Example" icon="code">
+    ```typescript
+    // backend/src/__tests__/utils/format.test.ts
+    import { formatBytes, getBytesUnit } from '../../utils/format';
+
+    describe('Format Utilities', () => {
+      describe('formatBytes', () => {
+        it('should format bytes to KB', () => {
+          expect(formatBytes(1024)).toBe('1.00 KB');
+        });
+
+        it('should format bytes to MB', () => {
+          expect(formatBytes(1048576)).toBe('1.00 MB');
+        });
+
+        it('should handle zero bytes', () => {
+          expect(formatBytes(0)).toBe('0 Bytes');
+        });
+      });
+
+      describe('getBytesUnit', () => {
+        it('should return correct unit for KB', () => {
+          expect(getBytesUnit(1024)).toBe('KB');
+        });
+      });
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Integration Test Example" icon="code">
+    ```typescript
+    // backend/src/__integration_tests__/blocks.integration.test.ts
+    import DB from '../database';
+    import blocks from '../api/blocks';
+
+    describe('Blocks Integration', () => {
+      beforeAll(async () => {
+        await DB.checkDbConnection();
+      });
+
+      afterAll(async () => {
+        await DB.close();
+      });
+
+      it('should fetch block from database', async () => {
+        const block = await blocks.getBlock('000000000000000000000...');
+        expect(block).toBeDefined();
+        expect(block.height).toBeGreaterThan(0);
+      });
+
+      it('should calculate block stats', async () => {
+        const stats = await blocks.calculateBlockStats(800000);
+        expect(stats.totalFees).toBeGreaterThan(0);
+        expect(stats.transactionCount).toBeGreaterThan(0);
+      });
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Mocking Example" icon="code">
+    ```typescript
+    // Mocking external dependencies
+    import bitcoinApi from '../api/bitcoin/bitcoin-api-factory';
+
+    jest.mock('../api/bitcoin/bitcoin-api-factory');
+
+    describe('Mempool', () => {
+      beforeEach(() => {
+        // Mock Bitcoin Core RPC responses
+        (bitcoinApi.getBlock as jest.Mock).mockResolvedValue({
+          hash: '0000000000000000000...',
+          height: 800000,
+          tx: ['txid1', 'txid2']
+        });
+      });
+
+      it('should process block', async () => {
+        const result = await processBlock('0000000000000000000...');
+        expect(bitcoinApi.getBlock).toHaveBeenCalledWith('0000000000000000000...');
+        expect(result.processed).toBe(true);
+      });
+    });
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Jest Configuration
+
+The backend uses a custom Jest configuration:
+
+```javascript
+// backend/jest.config.js
+module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  roots: ['<rootDir>/src'],
+  testMatch: ['**/__tests__/**/*.test.ts'],
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/**/*.d.ts',
+    '!src/__tests__/**',
+    '!src/__fixtures__/**'
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 50,
+      functions: 50,
+      lines: 50,
+      statements: 50
+    }
+  }
+};
+```
+
+---
+
+## Frontend Testing
+
+The frontend uses **Karma/Jasmine** for unit tests and **Cypress** for end-to-end tests.
+
+### Unit Tests
+
+<Tabs>
+  <Tab title="Run Tests">
+    ```bash
+    cd frontend
+    npm test
+    ```
+
+    This launches Karma and runs tests in Chrome.
+  </Tab>
+
+  <Tab title="Watch Mode">
+    Tests run in watch mode by default:
+
+    ```bash
+    npm test
+    ```
+
+    Files are watched for changes and tests re-run automatically.
+  </Tab>
+
+  <Tab title="Single Run">
+    Run tests once and exit:
+
+    ```bash
+    npm test -- --watch=false --browsers=ChromeHeadless
+    ```
+  </Tab>
+</Tabs>
+
+### End-to-End Tests
+
+Cypress is used for comprehensive E2E testing:
+
+<Tabs>
+  <Tab title="Interactive Mode">
+    Open Cypress Test Runner:
+
+    ```bash
+    npm run cypress:open
+    ```
+
+    This opens an interactive GUI where you can:
+    - Select test files to run
+    - Watch tests execute in real browser
+    - Debug failing tests
+    - See screenshots and videos
+  </Tab>
+
+  <Tab title="Headless Mode">
+    Run all E2E tests headlessly:
+
+    ```bash
+    npm run cypress:run
+    ```
+
+    Useful for CI/CD pipelines.
+  </Tab>
+
+  <Tab title="With Recording">
+    Run tests and record to Cypress Dashboard:
+
+    ```bash
+    npm run cypress:run:record
+    ```
+  </Tab>
+
+  <Tab title="CI Environment">
+    Run complete CI test suite:
+
+    ```bash
+    npm run cypress:run:ci
+    ```
+
+    This:
+    1. Configures the app for testing
+    2. Starts the dev server
+    3. Runs Cypress tests
+    4. Records results
+  </Tab>
+</Tabs>
+
+### Cypress Test Structure
+
+```
+frontend/
+├── cypress/
+│   ├── e2e/                    # Test files
+│   │   ├── mainnet/
+│   │   │   ├── blocks.cy.ts
+│   │   │   ├── transactions.cy.ts
+│   │   │   └── mempool.cy.ts
+│   │   ├── testnet/
+│   │   ├── signet/
+│   │   └── liquid/
+│   ├── fixtures/               # Test data
+│   ├── support/                # Helper functions
+│   │   ├── commands.ts
+│   │   └── e2e.ts
+│   └── screenshots/            # Failure screenshots
+└── cypress.config.ts
+```
+
+### Writing Frontend Tests
+
+<AccordionGroup>
+  <Accordion title="Component Unit Test" icon="code">
+    ```typescript
+    // frontend/src/app/components/fee-chart/fee-chart.component.spec.ts
+    import { ComponentFixture, TestBed } from '@angular/core/testing';
+    import { FeeChartComponent } from './fee-chart.component';
+
+    describe('FeeChartComponent', () => {
+      let component: FeeChartComponent;
+      let fixture: ComponentFixture<FeeChartComponent>;
+
+      beforeEach(async () => {
+        await TestBed.configureTestingModule({
+          declarations: [ FeeChartComponent ]
+        })
+        .compileComponents();
+      });
+
+      beforeEach(() => {
+        fixture = TestBed.createComponent(FeeChartComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+      });
+
+      it('should create', () => {
+        expect(component).toBeTruthy();
+      });
+
+      it('should render chart with data', () => {
+        component.data = mockFeeData;
+        fixture.detectChanges();
+        
+        const chartElement = fixture.nativeElement.querySelector('.chart');
+        expect(chartElement).toBeTruthy();
+      });
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Service Unit Test" icon="code">
+    ```typescript
+    // frontend/src/app/services/api.service.spec.ts
+    import { TestBed } from '@angular/core/testing';
+    import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+    import { ApiService } from './api.service';
+
+    describe('ApiService', () => {
+      let service: ApiService;
+      let httpMock: HttpTestingController;
+
+      beforeEach(() => {
+        TestBed.configureTestingModule({
+          imports: [HttpClientTestingModule],
+          providers: [ApiService]
+        });
+        service = TestBed.inject(ApiService);
+        httpMock = TestBed.inject(HttpTestingController);
+      });
+
+      afterEach(() => {
+        httpMock.verify();
+      });
+
+      it('should fetch block by hash', () => {
+        const mockBlock = { hash: '000...', height: 800000 };
+
+        service.getBlock('000...').subscribe(block => {
+          expect(block).toEqual(mockBlock);
+        });
+
+        const req = httpMock.expectOne('/api/block/000...');
+        expect(req.request.method).toBe('GET');
+        req.flush(mockBlock);
+      });
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Cypress E2E Test" icon="code">
+    ```typescript
+    // frontend/cypress/e2e/mainnet/blocks.cy.ts
+    describe('Block Explorer', () => {
+      beforeEach(() => {
+        cy.visit('/block/000000000000000000000...');
+      });
+
+      it('should display block details', () => {
+        cy.get('[data-cy="block-hash"]').should('be.visible');
+        cy.get('[data-cy="block-height"]').should('contain', '800000');
+        cy.get('[data-cy="block-time"]').should('exist');
+      });
+
+      it('should list transactions', () => {
+        cy.get('[data-cy="transaction-list"]').should('be.visible');
+        cy.get('[data-cy="transaction-item"]').should('have.length.at.least', 1);
+      });
+
+      it('should navigate to transaction details', () => {
+        cy.get('[data-cy="transaction-item"]').first().click();
+        cy.url().should('include', '/tx/');
+        cy.get('[data-cy="transaction-details"]').should('be.visible');
+      });
+
+      it('should display mining pool', () => {
+        cy.get('[data-cy="mining-pool"]').should('be.visible');
+      });
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Cypress Custom Commands" icon="code">
+    ```typescript
+    // frontend/cypress/support/commands.ts
+    declare global {
+      namespace Cypress {
+        interface Chainable {
+          waitForBlockData(): Chainable<void>;
+          mockWebSocket(): Chainable<void>;
+        }
+      }
+    }
+
+    Cypress.Commands.add('waitForBlockData', () => {
+      cy.intercept('GET', '/api/blocks/tip/height').as('blockHeight');
+      cy.wait('@blockHeight');
+    });
+
+    Cypress.Commands.add('mockWebSocket', () => {
+      cy.intercept('ws://localhost:8999', { fixture: 'websocket-mock.json' });
+    });
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Test Scripts Reference
+
+### Backend Scripts
+
+<Tabs>
+  <Tab title="package.json Scripts">
+    ```json
+    {
+      "scripts": {
+        "test": "jest --coverage",
+        "test:ci": "CI=true jest --coverage",
+        "test:integration": "jest --config=jest.integration.config.ts --runInBand --forceExit",
+        "test:with-db": "bash ./scripts/test-with-db.sh"
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Script Descriptions">
+    | Script | Description |
+    |--------|-------------|
+    | `test` | Run all unit tests with coverage |
+    | `test:ci` | Run tests in CI mode |
+    | `test:integration` | Run integration tests (requires DB) |
+    | `test:with-db` | Start test DB, run tests, cleanup |
+  </Tab>
+</Tabs>
+
+### Frontend Scripts
+
+<Tabs>
+  <Tab title="package.json Scripts">
+    ```json
+    {
+      "scripts": {
+        "test": "ng test",
+        "cypress:open": "cypress open",
+        "cypress:run": "cypress run",
+        "cypress:run:record": "cypress run --record",
+        "cypress:run:ci": "npm run config:defaults:mempool && start-server-and-test serve:local-prod 4200 cypress:run:record"
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Script Descriptions">
+    | Script | Description |
+    |--------|-------------|
+    | `test` | Run Karma unit tests |
+    | `cypress:open` | Open Cypress Test Runner |
+    | `cypress:run` | Run Cypress headlessly |
+    | `cypress:run:record` | Run and record to dashboard |
+    | `cypress:run:ci` | Full CI test suite |
+  </Tab>
+</Tabs>
+
+---
+
+## Code Quality Tools
+
+### Linting
+
+<Tabs>
+  <Tab title="Backend">
+    ```bash
+    cd backend
+
+    # Check for errors
+    npm run lint
+
+    # Auto-fix issues
+    npm run lint:fix
+    ```
+  </Tab>
+
+  <Tab title="Frontend">
+    ```bash
+    cd frontend
+
+    # Check for errors
+    npm run lint
+
+    # Auto-fix issues
+    npm run lint:fix
+    ```
+  </Tab>
+</Tabs>
+
+### Code Formatting
+
+<Tabs>
+  <Tab title="Backend">
+    ```bash
+    cd backend
+    npm run prettier
+    ```
+  </Tab>
+
+  <Tab title="Frontend">
+    ```bash
+    cd frontend
+    npm run prettier
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Continuous Integration
+
+Mempool uses GitHub Actions for automated testing.
+
+### CI Workflow
+
+<Steps>
+  <Step title="Lint & Type Check">
+    ```yaml
+    - name: Lint
+      run: npm run lint
+    ```
+  </Step>
+
+  <Step title="Unit Tests">
+    ```yaml
+    - name: Test
+      run: npm test
+    ```
+  </Step>
+
+  <Step title="Integration Tests">
+    ```yaml
+    - name: Integration Tests
+      run: npm run test:integration
+    ```
+  </Step>
+
+  <Step title="E2E Tests (Frontend)">
+    ```yaml
+    - name: Cypress Tests
+      run: npm run cypress:run:ci
+    ```
+  </Step>
+
+  <Step title="Coverage Upload">
+    ```yaml
+    - name: Upload Coverage
+      uses: codecov/codecov-action@v3
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Testing Best Practices
+
+<AccordionGroup>
+  <Accordion title="Write Meaningful Tests" icon="check">
+    ✅ **Do:**
+    ```typescript
+    it('should calculate correct fee rate for transaction', () => {
+      const tx = { fee: 1000, vsize: 200 };
+      expect(calculateFeeRate(tx)).toBe(5);
+    });
+    ```
+
+    ❌ **Don't:**
+    ```typescript
+    it('should work', () => {
+      expect(true).toBe(true);
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Keep Tests Isolated" icon="check">
+    Each test should be independent:
+
+    ```typescript
+    describe('BlockService', () => {
+      let service: BlockService;
+
+      beforeEach(() => {
+        service = new BlockService();
+      });
+
+      it('test 1', () => { /* ... */ });
+      it('test 2', () => { /* ... */ });
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Mock External Dependencies" icon="check">
+    Don't rely on external services:
+
+    ```typescript
+    jest.mock('../api/bitcoin-api');
+    
+    beforeEach(() => {
+      (bitcoinApi.getBlock as jest.Mock)
+        .mockResolvedValue(mockBlockData);
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Test Edge Cases" icon="check">
+    Cover boundary conditions:
+
+    ```typescript
+    it('should handle empty mempool', () => {
+      expect(calculateFees([])).toEqual([]);
+    });
+
+    it('should handle single transaction', () => {
+      expect(calculateFees([tx])).toEqual([expectedFee]);
+    });
+
+    it('should handle maximum transactions', () => {
+      const largeTxSet = Array(10000).fill(tx);
+      expect(calculateFees(largeTxSet)).toBeDefined();
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Use Descriptive Names" icon="check">
+    Test names should be self-documenting:
+
+    ✅ **Good:**
+    ```typescript
+    it('should return 404 when block hash not found')
+    it('should calculate median fee from sorted transactions')
+    ```
+
+    ❌ **Bad:**
+    ```typescript
+    it('test1')
+    it('works correctly')
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Debugging Tests
+
+### Backend Test Debugging
+
+<Tabs>
+  <Tab title="VS Code">
+    Create `.vscode/launch.json`:
+
+    ```json
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Jest Tests",
+      "program": "${workspaceFolder}/backend/node_modules/.bin/jest",
+      "args": ["--runInBand"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    }
+    ```
+  </Tab>
+
+  <Tab title="Node Inspector">
+    ```bash
+    node --inspect-brk node_modules/.bin/jest --runInBand
+    ```
+
+    Then open `chrome://inspect` in Chrome.
+  </Tab>
+
+  <Tab title="Console Logs">
+    ```typescript
+    it('should debug', () => {
+      console.log('Debug value:', value);
+      expect(value).toBe(expected);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+### Cypress Test Debugging
+
+<Tabs>
+  <Tab title="Interactive Mode">
+    ```bash
+    npm run cypress:open
+    ```
+
+    Use the Test Runner to:
+    - Step through test execution
+    - Inspect DOM at each step
+    - View network requests
+    - See console logs
+  </Tab>
+
+  <Tab title="Screenshots">
+    Cypress automatically captures screenshots on failure:
+
+    ```
+    frontend/cypress/screenshots/
+    ```
+  </Tab>
+
+  <Tab title="Videos">
+    Full test run videos:
+
+    ```
+    frontend/cypress/videos/
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Setup Guide" icon="laptop-code" href="/development/setup">
+    Set up your development environment
+  </Card>
+  <Card title="Contributing" icon="code-pull-request" href="/development/contributing">
+    Submit your first contribution
+  </Card>
+  <Card title="Architecture" icon="diagram-project" href="/development/architecture">
+    Understand the codebase
+  </Card>
+  <Card title="API Documentation" icon="book" href="/api/introduction">
+    Explore the REST API
+  </Card>
+</CardGroup>

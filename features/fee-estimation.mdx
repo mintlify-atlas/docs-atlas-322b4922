@@ -1,0 +1,488 @@
+---
+title: 'Fee Estimation'
+description: 'Smart Bitcoin transaction fee recommendations based on real-time mempool analysis'
+icon: 'coins'
+---
+
+## Overview
+
+Mempool's Fee Estimation provides accurate, real-time transaction fee recommendations to help you pay the right amount for the confirmation speed you need. Our algorithms analyze current mempool conditions to predict optimal fees.
+
+<img src="/images/fee-estimator.png" alt="Fee estimation widget showing priority levels" />
+
+## Why Transaction Fees Matter
+
+Bitcoin miners prioritize transactions by fee rate - transactions paying higher fees per byte get confirmed faster. Paying too little means waiting longer; paying too much wastes money.
+
+<CardGroup cols={3}>
+  <Card title="Save Money" icon="piggy-bank">
+    Avoid overpaying by using accurate fee estimates based on current network conditions.
+  </Card>
+  
+  <Card title="Control Timing" icon="clock">
+    Choose your priority level to balance cost and confirmation time.
+  </Card>
+  
+  <Card title="Real-Time Data" icon="bolt">
+    Fee recommendations update every few seconds based on live mempool data.
+  </Card>
+</CardGroup>
+
+## Fee Priority Levels
+
+Mempool provides three priority levels to match your needs:
+
+<Tabs>
+  <Tab title="High Priority">
+    **Next Block (10-20 minutes)**
+    
+    Recommended for:
+    - Time-sensitive payments
+    - Exchange withdrawals
+    - Important transactions
+    - When network is congested
+    
+    This fee rate should get your transaction in the next 1-2 blocks.
+    
+    <Info>
+      High priority doesn't guarantee instant confirmation - block times vary naturally.
+    </Info>
+  </Tab>
+  
+  <Tab title="Medium Priority">
+    **~30 minutes (3 blocks)**
+    
+    Recommended for:
+    - Regular payments
+    - Everyday transactions
+    - Most use cases
+    - Balanced cost/speed trade-off
+    
+    Your transaction should confirm within 30-60 minutes.
+  </Tab>
+  
+  <Tab title="Low Priority">
+    **~1 hour (6 blocks)**
+    
+    Recommended for:
+    - Non-urgent payments
+    - Consolidating UTXOs
+    - When saving on fees matters
+    - During low network activity
+    
+    Transaction should confirm within 1-2 hours. During quiet periods, may confirm faster.
+    
+    <Tip>
+      Low priority fees work great on weekends when the mempool typically clears.
+    </Tip>
+  </Tab>
+</Tabs>
+
+## Understanding Fee Rates
+
+### Satoshis per Virtual Byte (sat/vB)
+
+Fees are measured in satoshis per virtual byte:
+
+- **1 satoshi (sat)** = 0.00000001 BTC
+- **Virtual byte (vB)** = Unit of transaction size (SegWit adjusted)
+
+**Total fee = Transaction size × Fee rate**
+
+Example:
+```
+Transaction size: 250 vB
+Fee rate: 20 sat/vB
+Total fee: 250 × 20 = 5,000 sats (0.00005 BTC)
+```
+
+<Note>
+  SegWit and Taproot transactions are smaller, so you pay less total fees even at the same rate.
+</Note>
+
+### SegWit Discount
+
+SegWit (Segregated Witness) transactions receive a discount on block space:
+
+- **Legacy transactions**: 1 byte = 1 vByte
+- **SegWit transactions**: Witness data counts as 1/4 vByte
+- **Result**: 30-40% smaller transaction size
+
+<CardGroup cols={2}>
+  <Card title="Legacy P2PKH" icon="old">
+    ~230 vBytes typical
+    
+    At 20 sat/vB = 4,600 sats
+  </Card>
+  
+  <Card title="SegWit P2WPKH" icon="new">
+    ~140 vBytes typical
+    
+    At 20 sat/vB = 2,800 sats (39% savings!)
+  </Card>
+</CardGroup>
+
+## How Fee Estimation Works
+
+### Real-Time Analysis
+
+Our fee estimator continuously analyzes:
+
+1. **Current mempool state**: Size and composition
+2. **Fee rate distribution**: What others are paying
+3. **Block arrival rate**: Recent mining speed
+4. **Transaction flow**: Incoming transaction rate
+5. **Historical patterns**: Time-of-day and day-of-week trends
+
+### Estimation Algorithm
+
+The system calculates fee recommendations by:
+
+<Steps>
+  <Step title="Mempool Sampling">
+    Analyze the current mempool to see which fee rates are represented.
+  </Step>
+  
+  <Step title="Block Projection">
+    Project which transactions would be in the next several blocks based on current conditions.
+  </Step>
+  
+  <Step title="Confirmation Target">
+    Determine the minimum fee rate needed to reach your target confirmation time.
+  </Step>
+  
+  <Step title="Safety Margin">
+    Add a small buffer to account for new incoming transactions.
+  </Step>
+</Steps>
+
+### Why Estimates Change
+
+Fee recommendations update in real-time as conditions change:
+
+- **Mempool activity**: New high-fee transactions arrive
+- **Block discovery**: New blocks clear out transactions
+- **Network events**: Market volatility, exchange activity
+- **Time patterns**: Business hours vs. weekends
+
+<Warning>
+  Fee estimates are predictions, not guarantees. Unexpected network activity can affect confirmation times.
+</Warning>
+
+## Fee Estimation Widget
+
+### Dashboard Display
+
+The fee estimation box shows current recommended rates:
+
+<img src="/images/fees-box.png" alt="Fee rates for different priority levels" />
+
+- **Color gradient**: Visual indicator from low to high fees
+- **Three tiers**: No priority, medium, high
+- **Sat/vB rates**: Current recommended fee rates
+- **Live updates**: Refreshes every few seconds
+
+### Reading the Display
+
+```
+┌─────────────────────────────────┐
+│  Recommended Fees               │
+├─────────────────────────────────┤
+│  No Priority    │ 5 sat/vB      │
+│  Medium Priority│ 12 sat/vB     │
+│  High Priority  │ 20 sat/vB     │
+└─────────────────────────────────┘
+```
+
+<Info>
+  The colored background shows the relative fee range - darker colors indicate higher fees.
+</Info>
+
+## Using Fee Estimates in Wallets
+
+### Manual Entry
+
+When your wallet asks for a fee rate:
+
+1. Check mempool.space for current recommended rates
+2. Choose your priority level
+3. Enter the sat/vB rate in your wallet
+4. Verify the total fee before confirming
+
+<Tip>
+  Bookmark mempool.space or keep it open when making transactions.
+</Tip>
+
+### API Integration
+
+Wallet developers can integrate our fee API:
+
+<CodeGroup>
+```bash GET /api/v1/fees/recommended
+curl "https://mempool.space/api/v1/fees/recommended"
+```
+
+```json Response
+{
+  "fastestFee": 20,
+  "halfHourFee": 12,
+  "hourFee": 8,
+  "economyFee": 5,
+  "minimumFee": 1
+}
+```
+</CodeGroup>
+
+### Wallet-Specific Guidance
+
+<Tabs>
+  <Tab title="Bitcoin Core">
+    Use `estimatesmartfee` command:
+    
+    ```bash
+    bitcoin-cli estimatesmartfee 6
+    ```
+    
+    Or set `paytxfee` for manual control:
+    
+    ```bash
+    bitcoin-cli settxfee 0.00000020
+    ```
+  </Tab>
+  
+  <Tab title="Electrum">
+    Tools → Preferences → Fees
+    
+    - Enable "Edit fees manually"
+    - Enter sat/vB from mempool.space
+    - Or use "ETA" slider with mempool tab open
+  </Tab>
+  
+  <Tab title="Hardware Wallets">
+    Most hardware wallets (Ledger, Trezor) let you customize fees:
+    
+    - Select "Custom" or "Advanced"
+    - Enter sat/vB rate
+    - Confirm total fee on device
+  </Tab>
+  
+  <Tab title="Mobile Wallets">
+    Popular mobile wallets:
+    
+    - **BlueWallet**: Custom fee option available
+    - **Muun**: Automatic with mempool integration
+    - **Phoenix**: Lightning fees handled automatically
+    - **Samourai**: Full RBF support for bumping
+  </Tab>
+</Tabs>
+
+## Advanced Fee Strategies
+
+### Replace-By-Fee (RBF)
+
+Start with a lower fee and increase if needed:
+
+<Steps>
+  <Step title="Enable RBF">
+    Set RBF flag when creating transaction (sequence number < 0xfffffffe).
+  </Step>
+  
+  <Step title="Broadcast Low Fee">
+    Send transaction with low priority fee rate.
+  </Step>
+  
+  <Step title="Monitor Position">
+    Watch transaction position in mempool.
+  </Step>
+  
+  <Step title="Bump if Needed">
+    If not confirming fast enough, create replacement with higher fee.
+  </Step>
+</Steps>
+
+<Tip>
+  RBF lets you save money by starting low and only paying more if necessary.
+</Tip>
+
+### Child-Pays-For-Parent (CPFP)
+
+If you receive a low-fee transaction, speed it up:
+
+1. Create a new transaction spending the unconfirmed output
+2. Set a high enough fee to cover both transactions
+3. Miners will include both to collect the combined fee
+
+### Weekend Savings
+
+Time your transactions for lower fees:
+
+<CardGroup cols={2}>
+  <Card title="Expensive Times" icon="arrow-trend-up">
+    - Monday-Friday business hours
+    - Market volatility periods
+    - After major news events
+    - Exchange activity peaks
+  </Card>
+  
+  <Card title="Cheap Times" icon="arrow-trend-down">
+    - Saturday-Sunday
+    - Late night hours (UTC)
+    - Holiday periods
+    - Quiet market conditions
+  </Card>
+</CardGroup>
+
+## Fee Calculation Examples
+
+### Simple Payment
+
+```
+Transaction: 1 input, 2 outputs (SegWit)
+Size: ~140 vBytes
+Fee rate: 15 sat/vB
+Total fee: 140 × 15 = 2,100 sats
+
+At $40,000/BTC:
+Fee in USD: $0.84
+```
+
+### UTXO Consolidation
+
+```
+Transaction: 10 inputs, 1 output (SegWit)
+Size: ~550 vBytes
+Fee rate: 5 sat/vB (low priority)
+Total fee: 550 × 5 = 2,750 sats
+
+At $40,000/BTC:
+Fee in USD: $1.10
+```
+
+<Info>
+  Consolidate UTXOs during low-fee periods to save money on future transactions.
+</Info>
+
+### Batched Exchange Withdrawal
+
+```
+Transaction: 2 inputs, 50 outputs (SegWit)
+Size: ~1,800 vBytes
+Fee rate: 20 sat/vB
+Total fee: 1,800 × 20 = 36,000 sats
+
+Cost per recipient: 720 sats
+At $40,000/BTC: $0.29 per withdrawal
+```
+
+## Mempool Insights
+
+### Fee Distribution Graph
+
+View how fees are distributed across the mempool:
+
+- **X-axis**: Fee rate ranges
+- **Y-axis**: Amount of transaction data
+- **Colors**: Different fee tiers
+- **Height**: Shows concentration at each rate
+
+### Historical Fee Trends
+
+Analyze fee market evolution:
+
+- Daily average fees
+- Peak vs. off-peak patterns
+- Seasonal trends
+- Event-driven spikes
+
+<img src="/images/fee-trends.png" alt="Historical fee rate chart" />
+
+## API Reference
+
+Access fee estimation programmatically:
+
+<CodeGroup>
+```bash Recommended Fees
+curl "https://mempool.space/api/v1/fees/recommended"
+```
+
+```bash Mempool Blocks
+curl "https://mempool.space/api/v1/fees/mempool-blocks"
+```
+
+```bash Fee Histogram
+curl "https://mempool.space/api/mempool/fees"
+```
+</CodeGroup>
+
+See [API Documentation](/api/mempool/fees) for complete details.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="My transaction isn't confirming">
+    Check if your fee rate is competitive:
+    
+    1. Look up your transaction on mempool.space
+    2. Check its position in mempool blocks
+    3. Compare your fee rate to current recommendations
+    4. Consider RBF or CPFP to speed up
+    5. Or use [Transaction Acceleration](/features/transaction-acceleration)
+  </Accordion>
+  
+  <Accordion title="Fee estimates seem too high">
+    Fee recommendations reflect current market conditions:
+    
+    - Check the mempool size (higher = more expensive)
+    - Consider waiting for a quieter period
+    - Use low priority if not urgent
+    - Check if there's unusual network activity
+  </Accordion>
+  
+  <Accordion title="Should I always use high priority?">
+    No, only when necessary:
+    
+    - Most transactions can use medium priority
+    - Use high priority for time-sensitive payments
+    - Use low priority to save money when possible
+    - Monitor the mempool to understand conditions
+  </Accordion>
+  
+  <Accordion title="Why do wallets show different fees?">
+    Different estimation algorithms:
+    
+    - Some wallets use outdated data
+    - Some add extra margin for safety
+    - Some use Bitcoin Core's estimator
+    - Mempool.space uses real-time mempool analysis
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<Check>Always check current mempool conditions before sending</Check>
+<Check>Use SegWit or Taproot addresses to save on fees</Check>
+<Check>Enable RBF for flexibility to adjust fees later</Check>
+<Check>Batch multiple payments when possible</Check>
+<Check>Consolidate UTXOs during low-fee periods</Check>
+<Check>Don't overpay - use appropriate priority level</Check>
+<Check>Consider Lightning Network for small/frequent payments</Check>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Mempool Visualizer" icon="chart-area" href="/features/mempool-visualizer">
+    See real-time mempool activity and fee distribution
+  </Card>
+  
+  <Card title="Transaction Acceleration" icon="rocket" href="/features/transaction-acceleration">
+    Speed up stuck transactions with low fees
+  </Card>
+  
+  <Card title="Blockchain Explorer" icon="magnifying-glass" href="/features/blockchain-explorer">
+    Look up transaction details and confirmation status
+  </Card>
+  
+  <Card title="Lightning Explorer" icon="bolt" href="/features/lightning-explorer">
+    Explore Lightning Network for instant, low-fee payments
+  </Card>
+</CardGroup>

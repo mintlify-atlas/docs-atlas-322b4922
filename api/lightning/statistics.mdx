@@ -1,0 +1,332 @@
+---
+title: 'Lightning Network Statistics API'
+description: 'Access historical and current statistics about the Lightning Network including node counts, capacity, and network metrics'
+---
+
+# Lightning Network Statistics API
+
+The Lightning Network Statistics API provides access to current and historical data about the Lightning Network, including channel counts, total capacity, and node distribution across different network types.
+
+## Get Latest Statistics
+
+Retrieve the most recent Lightning Network statistics along with data from 7 days ago for comparison.
+
+```bash
+GET /api/v1/lightning/statistics/latest
+```
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/statistics/latest"
+```
+
+### Response
+
+<ResponseField name="latest" type="object">
+  Most recent statistics snapshot
+  
+  <ResponseField name="channel_count" type="number">
+    Total number of channels on the network
+  </ResponseField>
+  
+  <ResponseField name="total_capacity" type="number">
+    Total network capacity in satoshis
+  </ResponseField>
+  
+  <ResponseField name="tor_nodes" type="number">
+    Number of Tor-only nodes
+  </ResponseField>
+  
+  <ResponseField name="clearnet_nodes" type="number">
+    Number of clearnet-only nodes
+  </ResponseField>
+  
+  <ResponseField name="unannounced_nodes" type="number">
+    Number of unannounced (private) nodes
+  </ResponseField>
+  
+  <ResponseField name="clearnet_tor_nodes" type="number">
+    Number of nodes accessible via both clearnet and Tor
+  </ResponseField>
+  
+  <ResponseField name="added" type="string">
+    Timestamp when this snapshot was recorded
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="previous" type="object">
+  Statistics snapshot from 7 days ago (same structure as latest)
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "latest": {
+    "channel_count": 54328,
+    "total_capacity": 498765432100,
+    "tor_nodes": 8234,
+    "clearnet_nodes": 12456,
+    "unannounced_nodes": 2134,
+    "clearnet_tor_nodes": 3421,
+    "added": "2026-03-02T10:30:00Z"
+  },
+  "previous": {
+    "channel_count": 54102,
+    "total_capacity": 495234567800,
+    "tor_nodes": 8198,
+    "clearnet_nodes": 12389,
+    "unannounced_nodes": 2089,
+    "clearnet_tor_nodes": 3398,
+    "added": "2026-02-23T10:30:00Z"
+  }
+}
+```
+
+---
+
+## Get Historical Statistics
+
+Retrieve historical Lightning Network statistics over a specified time interval.
+
+```bash
+GET /api/v1/lightning/statistics/:interval
+```
+
+<ParamField path="interval" type="string" required>
+  Time interval for historical data. Supported values:
+  - `24h` - Last 24 hours
+  - `3d` - Last 3 days
+  - `1w` - Last week
+  - `1m` - Last month
+  - `3m` - Last 3 months
+  - `6m` - Last 6 months
+  - `1y` - Last year
+  - `2y` - Last 2 years
+  - `3y` - Last 3 years
+  - `all` - All available data
+</ParamField>
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/statistics/1m"
+```
+
+### Response Headers
+
+<ResponseField name="X-Total-Count" type="string">
+  Total number of statistics entries available
+</ResponseField>
+
+### Response Body
+
+Returns an array of statistics snapshots, ordered from most recent to oldest:
+
+<ResponseField name="added" type="number">
+  Unix timestamp when this snapshot was recorded
+</ResponseField>
+
+<ResponseField name="channel_count" type="number">
+  Total number of channels at this time
+</ResponseField>
+
+<ResponseField name="total_capacity" type="number">
+  Total network capacity in satoshis
+</ResponseField>
+
+<ResponseField name="tor_nodes" type="number">
+  Number of Tor-only nodes
+</ResponseField>
+
+<ResponseField name="clearnet_nodes" type="number">
+  Number of clearnet-only nodes
+</ResponseField>
+
+<ResponseField name="unannounced_nodes" type="number">
+  Number of unannounced nodes
+</ResponseField>
+
+<ResponseField name="clearnet_tor_nodes" type="number">
+  Number of hybrid clearnet/Tor nodes
+</ResponseField>
+
+### Example Response
+
+```json
+[
+  {
+    "added": 1709373000,
+    "channel_count": 54328,
+    "total_capacity": 498765432100,
+    "tor_nodes": 8234,
+    "clearnet_nodes": 12456,
+    "unannounced_nodes": 2134,
+    "clearnet_tor_nodes": 3421
+  },
+  {
+    "added": 1709286600,
+    "channel_count": 54298,
+    "total_capacity": 498123456700,
+    "tor_nodes": 8229,
+    "clearnet_nodes": 12442,
+    "unannounced_nodes": 2128,
+    "clearnet_tor_nodes": 3415
+  }
+]
+```
+
+---
+
+## Search Lightning Network
+
+Search for both nodes and channels simultaneously.
+
+```bash
+GET /api/v1/lightning/search?searchText=:query
+```
+
+<ParamField query="searchText" type="string" required>
+  Search query (can be a node alias, public key, channel ID, or short channel ID)
+</ParamField>
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/search?searchText=ACINQ"
+```
+
+### Response
+
+<ResponseField name="nodes" type="array">
+  Array of matching nodes (up to 10 results)
+  
+  <ResponseField name="public_key" type="string">
+    Node public key
+  </ResponseField>
+  
+  <ResponseField name="alias" type="string">
+    Node alias
+  </ResponseField>
+  
+  <ResponseField name="capacity" type="number">
+    Total capacity
+  </ResponseField>
+  
+  <ResponseField name="channels" type="number">
+    Number of channels
+  </ResponseField>
+  
+  <ResponseField name="status" type="number">
+    Node status (0: inactive, 1: active)
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="channels" type="array">
+  Array of matching channels (up to 10 results)
+  
+  <ResponseField name="id" type="string">
+    Channel ID
+  </ResponseField>
+  
+  <ResponseField name="short_id" type="string">
+    Channel short ID
+  </ResponseField>
+  
+  <ResponseField name="capacity" type="number">
+    Channel capacity
+  </ResponseField>
+  
+  <ResponseField name="status" type="number">
+    Channel status
+  </ResponseField>
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "nodes": [
+    {
+      "public_key": "03864ef025fde8fb587d989186ce6a4a186895ee44a926bfc370e2c366597a3f8f",
+      "alias": "ACINQ",
+      "capacity": 45678901234,
+      "channels": 342,
+      "status": 1
+    }
+  ],
+  "channels": []
+}
+```
+
+---
+
+## Understanding Node Types
+
+The Lightning Network statistics track different types of nodes based on their network accessibility:
+
+### Clearnet Nodes
+Nodes that are accessible via standard IPv4 or IPv6 internet connections. These nodes are typically run by public services or individuals with static IP addresses.
+
+### Tor Nodes
+Nodes that are only accessible through the Tor network, providing enhanced privacy and accessibility for users behind restrictive firewalls or NATs.
+
+### Clearnet + Tor Nodes
+Nodes that advertise both clearnet and Tor addresses, offering maximum accessibility and redundancy.
+
+### Unannounced Nodes
+Nodes that don't broadcast their channels publicly. These are typically used for private channel configurations where routing is not desired.
+
+---
+
+## Data Collection
+
+Statistics are collected periodically by the Mempool instance's Lightning Network graph sync process. The frequency of updates may vary but typically occurs:
+- Latest statistics: Every few minutes
+- Historical snapshots: Hourly or daily, depending on the age of the data
+
+---
+
+## Use Cases
+
+### Network Growth Tracking
+Monitor the growth of the Lightning Network over time by comparing channel counts and capacity across different intervals.
+
+```bash
+# Track yearly growth
+curl "https://mempool.space/api/v1/lightning/statistics/1y"
+```
+
+### Network Health Monitoring
+Analyze the distribution of nodes across different network types to understand network decentralization and accessibility.
+
+```bash
+# Get current distribution
+curl "https://mempool.space/api/v1/lightning/statistics/latest"
+```
+
+### Capacity Analysis
+Track total network capacity to understand the Lightning Network's payment capacity and liquidity trends.
+
+```bash
+# Analyze capacity trends over 3 months
+curl "https://mempool.space/api/v1/lightning/statistics/3m"
+```
+
+---
+
+## Rate Limits
+
+All Lightning API endpoints are subject to standard rate limiting. For applications requiring frequent updates, implement caching with respect to the `Expires` headers returned by the API.
+
+---
+
+## Notes
+
+- All capacity values are in satoshis (1 BTC = 100,000,000 satoshis)
+- Timestamps in the historical endpoints are Unix timestamps (seconds since epoch)
+- The `/latest` endpoint provides a convenient comparison point with data from 7 days prior
+- Historical data availability depends on when the Mempool instance started collecting Lightning Network data
+- Node counts may include inactive nodes that are still in the database but no longer actively routing
+- The `X-Total-Count` header helps with pagination and understanding the full dataset size

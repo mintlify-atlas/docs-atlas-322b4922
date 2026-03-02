@@ -1,0 +1,313 @@
+---
+title: 'Transaction Acceleration API'
+description: 'API endpoints for transaction acceleration services'
+---
+
+## Overview
+
+The Transaction Acceleration API allows you to access information about accelerated Bitcoin transactions, including current accelerations, historical data, and cost estimates.
+
+## Endpoints
+
+### Get Current Accelerations
+
+<ParamField path="GET" type="endpoint">
+  `/api/v1/services/accelerator/accelerations`
+</ParamField>
+
+Returns a list of all currently active transaction accelerations.
+
+**Response**
+
+<ResponseField name="accelerations" type="array">
+  Array of active acceleration objects
+  <ResponseField name="txid" type="string" required>
+    Transaction ID being accelerated
+  </ResponseField>
+  <ResponseField name="max_bid" type="number" required>
+    Maximum bid amount in satoshis
+  </ResponseField>
+</ResponseField>
+
+**Example Response**
+
+```json
+[
+  {
+    "txid": "a1b2c3d4e5f6...",
+    "max_bid": 50000
+  }
+]
+```
+
+---
+
+### Get Acceleration by Transaction ID
+
+<ParamField path="GET" type="endpoint">
+  `/api/v1/services/accelerator/accelerations/:txid`
+</ParamField>
+
+Returns detailed acceleration information for a specific transaction.
+
+**Parameters**
+
+<ParamField path="txid" type="string" required>
+  Transaction ID to query
+</ParamField>
+
+**Response**
+
+<ResponseField name="acceleration" type="object">
+  <ResponseField name="txid" type="string" required>
+    Transaction ID
+  </ResponseField>
+  <ResponseField name="height" type="number" required>
+    Block height where transaction was confirmed
+  </ResponseField>
+  <ResponseField name="added" type="number" required>
+    Unix timestamp when acceleration was requested
+  </ResponseField>
+  <ResponseField name="pool" type="object" required>
+    Mining pool information
+    <ResponseField name="id" type="number">
+      Pool ID
+    </ResponseField>
+    <ResponseField name="slug" type="string">
+      Pool slug identifier
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Pool display name
+    </ResponseField>
+  </ResponseField>
+  <ResponseField name="effective_vsize" type="number" required>
+    Total vsize of the transaction and its dependencies
+  </ResponseField>
+  <ResponseField name="effective_fee" type="number" required>
+    Total fee in satoshis
+  </ResponseField>
+  <ResponseField name="boost_rate" type="number" required>
+    Fee rate boost in sat/vB
+  </ResponseField>
+  <ResponseField name="boost_cost" type="number" required>
+    Additional cost to accelerate in satoshis
+  </ResponseField>
+</ResponseField>
+
+**Example Response**
+
+```json
+{
+  "txid": "a1b2c3d4e5f6...",
+  "height": 750000,
+  "added": 1640000000,
+  "pool": {
+    "id": 1,
+    "slug": "foundryusa",
+    "name": "Foundry USA"
+  },
+  "effective_vsize": 250,
+  "effective_fee": 12500,
+  "boost_rate": 50,
+  "boost_cost": 10000
+}
+```
+
+**Error Responses**
+
+- `400 Bad Request` - Missing txid parameter
+- `404 Not Found` - Acceleration not found for the given txid
+
+---
+
+### Get Acceleration History
+
+<ParamField path="GET" type="endpoint">
+  `/api/v1/services/accelerator/accelerations/history`
+</ParamField>
+
+Retrieve historical acceleration data with optional filtering.
+
+**Query Parameters**
+
+<ParamField query="blockHeight" type="number" optional>
+  Filter by specific block height
+</ParamField>
+
+**Response**
+
+<ResponseField name="history" type="array">
+  Array of historical acceleration records
+  <ResponseField name="txid" type="string" required>
+    Transaction ID
+  </ResponseField>
+  <ResponseField name="added" type="number" required>
+    Unix timestamp when added to mempool
+  </ResponseField>
+  <ResponseField name="status" type="string" required>
+    Status (always "completed" for historical records)
+  </ResponseField>
+  <ResponseField name="effectiveFee" type="number" required>
+    Total effective fee in satoshis
+  </ResponseField>
+  <ResponseField name="effectiveVsize" type="number" required>
+    Total effective vsize
+  </ResponseField>
+  <ResponseField name="boostRate" type="number" required>
+    Boost rate in sat/vB
+  </ResponseField>
+  <ResponseField name="boostCost" type="number" required>
+    Cost of boost in satoshis
+  </ResponseField>
+  <ResponseField name="blockHeight" type="number" required>
+    Block height where confirmed
+  </ResponseField>
+  <ResponseField name="pools" type="array" required>
+    Array of pool IDs involved
+  </ResponseField>
+</ResponseField>
+
+**Example Response**
+
+```json
+[
+  {
+    "txid": "a1b2c3d4e5f6...",
+    "added": 1640000000,
+    "status": "completed",
+    "effectiveFee": 12500,
+    "effectiveVsize": 250,
+    "boostRate": 50,
+    "boostCost": 10000,
+    "blockHeight": 750000,
+    "pools": [1]
+  }
+]
+```
+
+---
+
+### Get Aggregated Acceleration History
+
+<ParamField path="GET" type="endpoint">
+  `/api/v1/services/accelerator/accelerations/history/aggregated`
+</ParamField>
+
+Returns aggregated acceleration statistics over time. This endpoint proxies to the Mempool Services API.
+
+**Response**
+
+Streaming response with aggregated acceleration data.
+
+---
+
+### Get Acceleration Statistics
+
+<ParamField path="GET" type="endpoint">
+  `/api/v1/services/accelerator/accelerations/stats`
+</ParamField>
+
+Returns current acceleration statistics and metrics. This endpoint proxies to the Mempool Services API.
+
+**Response**
+
+Streaming response with acceleration statistics.
+
+---
+
+### Estimate Acceleration Cost
+
+<ParamField path="POST" type="endpoint">
+  `/api/v1/services/accelerator/estimate`
+</ParamField>
+
+Calculate the estimated cost to accelerate a transaction. This endpoint proxies to the Mempool Services API.
+
+**Request Body**
+
+<ParamField body="txid" type="string" required>
+  Transaction ID to estimate acceleration for
+</ParamField>
+
+<ParamField body="targetFeeRate" type="number" optional>
+  Target fee rate in sat/vB
+</ParamField>
+
+**Example Request**
+
+```json
+{
+  "txid": "a1b2c3d4e5f6...",
+  "targetFeeRate": 50
+}
+```
+
+**Response**
+
+<ResponseField name="estimate" type="object">
+  <ResponseField name="txSummary" type="object" required>
+    Transaction summary information
+    <ResponseField name="txid" type="string">
+      Transaction ID
+    </ResponseField>
+    <ResponseField name="effectiveVsize" type="number">
+      Total vsize including dependencies
+    </ResponseField>
+    <ResponseField name="effectiveFee" type="number">
+      Current effective fee in satoshis
+    </ResponseField>
+    <ResponseField name="ancestorCount" type="number">
+      Number of unconfirmed ancestors
+    </ResponseField>
+  </ResponseField>
+  <ResponseField name="targetFeeRate" type="number" required>
+    Target fee rate in sat/vB
+  </ResponseField>
+  <ResponseField name="nextBlockFee" type="number" required>
+    Fee required for next block inclusion in satoshis
+  </ResponseField>
+  <ResponseField name="cost" type="number" required>
+    Additional cost to accelerate in satoshis
+  </ResponseField>
+</ResponseField>
+
+**Example Response**
+
+```json
+{
+  "txSummary": {
+    "txid": "a1b2c3d4e5f6...",
+    "effectiveVsize": 250,
+    "effectiveFee": 5000,
+    "ancestorCount": 2
+  },
+  "targetFeeRate": 50,
+  "nextBlockFee": 12500,
+  "cost": 7500
+}
+```
+
+**Error Responses**
+
+- `400 Bad Request` - Invalid transaction or parameters
+- `500 Internal Server Error` - Unable to calculate estimate
+
+## Acceleration Concepts
+
+### Effective Fee and Vsize
+
+The acceleration API considers not just the target transaction, but also its unconfirmed ancestors (CPFP dependencies). The `effectiveVsize` and `effectiveFee` fields represent the total size and fees of the entire dependency tree.
+
+### Boost Rate Calculation
+
+The boost rate is calculated dynamically based on current mempool conditions and represents the fair rate to charge for transaction prioritization. The algorithm excludes already-accelerated transactions and considers the "next best rate" of alternative transactions.
+
+### Cost Calculation
+
+The acceleration cost is calculated as:
+
+```
+cost = max(0, (effectiveVsize × targetFeeRate) - effectiveFee)
+```
+
+This ensures the total package reaches the target fee rate for next-block inclusion.

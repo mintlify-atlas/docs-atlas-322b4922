@@ -1,0 +1,572 @@
+---
+title: 'Mining Dashboard'
+description: 'Real-time Bitcoin mining statistics including hashrate, difficulty, pools, and block rewards'
+icon: 'hammer'
+---
+
+## Overview
+
+The Mining Dashboard provides comprehensive insights into Bitcoin's mining ecosystem. Track network hashrate, difficulty adjustments, mining pool dominance, block rewards, and more.
+
+<img src="/images/mining-dashboard.png" alt="Bitcoin mining dashboard with charts" />
+
+## What is Bitcoin Mining?
+
+Bitcoin mining is the process of:
+1. **Collecting transactions** from the mempool
+2. **Creating a block** with those transactions
+3. **Finding a valid proof-of-work** by computing hash values
+4. **Broadcasting the block** to the network
+5. **Earning the reward** (block subsidy + transaction fees)
+
+<Info>
+  Miners compete to find blocks, with probability proportional to their share of total network hashrate.
+</Info>
+
+## Key Mining Metrics
+
+<CardGroup cols={2}>
+  <Card title="Network Hashrate" icon="gauge-high">
+    Total computational power securing the Bitcoin network, measured in exahashes per second (EH/s).
+  </Card>
+  
+  <Card title="Difficulty" icon="shield">
+    How hard it is to find a valid block. Adjusts every 2,016 blocks (~2 weeks) to maintain 10-minute block times.
+  </Card>
+  
+  <Card title="Block Reward" icon="coins">
+    Payment miners receive for finding a block: subsidy (currently 3.125 BTC) plus transaction fees.
+  </Card>
+  
+  <Card title="Pool Dominance" icon="chart-pie">
+    Market share of different mining pools, showing concentration of mining power.
+  </Card>
+</CardGroup>
+
+## Network Hashrate
+
+### Understanding Hashrate
+
+Hashrate represents the network's mining power:
+
+- **1 Hash/s**: One hash computation per second
+- **1 TH/s** (terahash): 1 trillion hashes per second
+- **1 PH/s** (petahash): 1,000 TH/s
+- **1 EH/s** (exahash): 1,000,000 TH/s
+
+<Tabs>
+  <Tab title="Current Hashrate">
+    **Real-Time Estimate**
+    
+    The dashboard shows estimated network hashrate based on:
+    - Recent block discovery rate
+    - Current difficulty
+    - Statistical smoothing (7-day average)
+    
+    Example: 400 EH/s means the network performs 400 quintillion hashes per second.
+  </Tab>
+  
+  <Tab title="Historical Trends">
+    **Hashrate Over Time**
+    
+    Interactive chart showing:
+    - Long-term growth trajectory
+    - Mining bans and regulations impact
+    - Seasonal variations
+    - Correlation with Bitcoin price
+    
+    <img src="/images/hashrate-chart.png" alt="Historical hashrate chart" />
+  </Tab>
+  
+  <Tab title="Pool Breakdown">
+    **Hashrate by Pool**
+    
+    See which mining pools control what percentage:
+    - Pool logos and names
+    - Estimated hashrate per pool
+    - 24-hour block count
+    - Market share percentage
+  </Tab>
+</Tabs>
+
+### Why Hashrate Matters
+
+<CardGroup cols={2}>
+  <Card title="Security" icon="lock">
+    Higher hashrate = more expensive to attack the network
+  </Card>
+  
+  <Card title="Decentralization" icon="network-wired">
+    Distribution shows how concentrated mining power is
+  </Card>
+  
+  <Card title="Mining Economics" icon="dollar-sign">
+    Helps estimate mining profitability and difficulty trends
+  </Card>
+  
+  <Card title="Network Health" icon="heart-pulse">
+    Growing hashrate indicates confidence in Bitcoin
+  </Card>
+</CardGroup>
+
+## Difficulty Adjustment
+
+### How It Works
+
+Bitcoin automatically adjusts mining difficulty every 2,016 blocks:
+
+<Steps>
+  <Step title="Measure Block Times">
+    Calculate average time for the last 2,016 blocks.
+  </Step>
+  
+  <Step title="Compare to Target">
+    Target is 2 weeks (20,160 minutes).
+  </Step>
+  
+  <Step title="Adjust Difficulty">
+    - If blocks were faster than 10 minutes → increase difficulty
+    - If blocks were slower → decrease difficulty
+  </Step>
+  
+  <Step title="Apply New Difficulty">
+    Change takes effect at the next block.
+  </Step>
+</Steps>
+
+### Difficulty Dashboard
+
+The dashboard displays:
+
+```
+┌──────────────────────────────────────┐
+│ Current Difficulty: 62.46 T          │
+│ Next Adjustment:    +2.5% (in 850)  │
+│ Time to Adjustment: 5 days 23 hours │
+│ Average Block Time: 9m 42s           │
+└──────────────────────────────────────┘
+```
+
+<Info>
+  "T" represents trillion. Current difficulty around 60-70 trillion.
+</Info>
+
+### Adjustment History
+
+View past difficulty adjustments:
+
+<Tabs>
+  <Tab title="Recent Adjustments">
+    - Date and block height
+    - Percentage change
+    - New difficulty value
+    - Average block time during period
+  </Tab>
+  
+  <Tab title="Trend Chart">
+    Interactive graph showing difficulty over time:
+    - Exponential growth pattern
+    - Major mining events
+    - Correlation with hashrate
+    
+    <img src="/images/difficulty-chart.png" alt="Difficulty adjustment history" />
+  </Tab>
+  
+  <Tab title="Predictions">
+    Estimated next adjustment based on:
+    - Current block time average
+    - Blocks remaining in period
+    - Real-time calculation
+    
+    <Warning>
+      Predictions change as hashrate fluctuates. Most accurate near the end of each period.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Mining Pools
+
+### Pool Rankings
+
+See which pools are finding the most blocks:
+
+<img src="/images/pool-rankings.png" alt="Mining pool market share" />
+
+For each pool:
+- **Pool name and logo**
+- **Blocks mined** (24h, 1 week, 1 month, all-time)
+- **Estimated hashrate**
+- **Market share percentage**
+- **Average luck** (actual vs. expected blocks)
+
+### Pool Analysis
+
+<Tabs>
+  <Tab title="Dominance">
+    **Market Concentration**
+    
+    Pie chart showing pool distribution:
+    - Top pools highlighted
+    - Smaller pools grouped as "Other"
+    - 51% attack risk visualization
+    - Decentralization metrics
+    
+    <Warning>
+      If any pool exceeds 51%, they could theoretically attack the network. Bitcoin has never had this occur.
+    </Warning>
+  </Tab>
+  
+  <Tab title="Blocks Found">
+    **Recent Mining Activity**
+    
+    List of recently mined blocks:
+    - Block height and timestamp
+    - Pool that found it
+    - Block reward (subsidy + fees)
+    - Transaction count
+    - Block size/weight
+  </Tab>
+  
+  <Tab title="Pool Details">
+    **Individual Pool Stats**
+    
+    Click any pool to see:
+    - Block history
+    - Hashrate over time
+    - Fee collection strategies
+    - Payout methods
+    - Pool website link
+  </Tab>
+</Tabs>
+
+### Notable Mining Pools
+
+<CardGroup cols={2}>
+  <Card title="Foundry USA" icon="building">
+    Large US-based pool, often the largest by hashrate
+  </Card>
+  
+  <Card title="AntPool" icon="ant">
+    Operated by Bitmain, major mining hardware manufacturer
+  </Card>
+  
+  <Card title="F2Pool" icon="fish">
+    One of the oldest pools, based in China
+  </Card>
+  
+  <Card title="ViaBTC" icon="v">
+    Major pool supporting multiple cryptocurrencies
+  </Card>
+  
+  <Card title="Unknown" icon="question">
+    Solo miners or pools not identifying themselves
+  </Card>
+  
+  <Card title="Braiins Pool" icon="brain">
+    Stratum V2 early adopter, transparency-focused
+  </Card>
+</CardGroup>
+
+<Tip>
+  Unidentified miners ("Unknown") help with decentralization.
+</Tip>
+
+## Block Rewards
+
+### Reward Components
+
+Each block reward consists of:
+
+1. **Block Subsidy** (fixed per block):
+   - Started at 50 BTC (2009)
+   - Halves every 210,000 blocks (~4 years)
+   - Current: 3.125 BTC (after 2024 halving)
+   - Next halving: ~2028 (1.5625 BTC)
+
+2. **Transaction Fees** (variable):
+   - Sum of all fees from block transactions
+   - Depends on mempool congestion
+   - Ranges from 0.1 to 5+ BTC
+
+**Total Reward = Subsidy + Fees**
+
+### Halving Schedule
+
+<Steps>
+  <Step title="2009-2012">
+    50 BTC per block
+    
+    10,500,000 BTC mined
+  </Step>
+  
+  <Step title="2012-2016">
+    25 BTC per block
+    
+    5,250,000 BTC mined
+  </Step>
+  
+  <Step title="2016-2020">
+    12.5 BTC per block
+    
+    2,625,000 BTC mined
+  </Step>
+  
+  <Step title="2020-2024">
+    6.25 BTC per block
+    
+    1,312,500 BTC mined
+  </Step>
+  
+  <Step title="2024-2028">
+    3.125 BTC per block
+    
+    656,250 BTC mined
+  </Step>
+</Steps>
+
+<Info>
+  After ~32 halvings (around year 2140), no new Bitcoin will be created. Miners will rely entirely on transaction fees.
+</Info>
+
+### Fee Statistics
+
+Analyze transaction fee trends:
+
+<CardGroup cols={2}>
+  <Card title="Fee per Block" icon="chart-column">
+    Average and median fees collected per block over time
+  </Card>
+  
+  <Card title="Fee Percentage" icon="percent">
+    Fees as percentage of total block reward
+  </Card>
+  
+  <Card title="Fee Distribution" icon="chart-scatter">
+    Histogram showing fee variance across recent blocks
+  </Card>
+  
+  <Card title="High Fee Blocks" icon="fire">
+    Notable blocks with exceptional fee collection
+  </Card>
+</CardGroup>
+
+<img src="/images/block-rewards-chart.png" alt="Block rewards over time" />
+
+## Block Production
+
+### Block Time Analysis
+
+**Target**: 10 minutes per block
+**Reality**: Statistical distribution around 10 minutes
+
+The dashboard shows:
+- Average block time (rolling average)
+- Fastest/slowest recent blocks
+- Time since last block
+- Next expected block time
+
+<Note>
+  Block times follow a Poisson distribution. Finding blocks faster or slower is normal; difficulty adjusts to maintain the 10-minute average.
+</Note>
+
+### Block Size and Weight
+
+Track how full blocks are:
+
+- **Block Size**: Data size in megabytes (MB)
+  - Max: 4 MB including witness data
+  - Typical: 1.5-2.5 MB
+
+- **Block Weight**: Post-SegWit measurement
+  - Max: 4,000,000 weight units (WU)
+  - 1 vByte = 4 WU
+
+<img src="/images/block-sizes-chart.png" alt="Block size history" />
+
+### Empty Blocks
+
+Occasionally, pools mine empty blocks (only coinbase transaction):
+
+**Why?**
+- Reducing validation time
+- Immediately after previous block found
+- Network propagation delays
+- Technical issues
+
+<Warning>
+  Empty blocks collect no transaction fees, only the subsidy.
+</Warning>
+
+## Mining Health Indicators
+
+### Network Security
+
+<CardGroup cols={2}>
+  <Card title="Hashrate Growth" icon="arrow-trend-up">
+    Increasing hashrate = stronger security
+  </Card>
+  
+  <Card title="Pool Decentralization" icon="diagram-project">
+    No pool > 25% is ideal
+  </Card>
+  
+  <Card title="Geographic Distribution" icon="earth">
+    Mining distributed across countries
+  </Card>
+  
+  <Card title="Block Interval Stability" icon="clock">
+    Consistent ~10 minute intervals
+  </Card>
+</CardGroup>
+
+### Mining Economics
+
+Factors affecting mining profitability:
+
+1. **Bitcoin Price**: Higher price = higher revenue
+2. **Block Reward**: Subsidy + fees in BTC
+3. **Difficulty**: Higher = more expensive to mine
+4. **Energy Costs**: Major operational expense
+5. **Hardware Efficiency**: Newer ASICs mine more efficiently
+
+<Info>
+  Miners become unprofitable when revenue < costs, potentially reducing hashrate until difficulty adjusts down.
+</Info>
+
+## Special Events
+
+### Block Halving
+
+Major event every ~4 years:
+
+- Block subsidy cuts in half
+- Mining revenue decreases
+- Often correlates with price movements
+- Next halving tracked on dashboard
+
+### Difficulty Drops
+
+Significant drops can indicate:
+- Mining operations shutting down
+- Regulatory actions
+- Energy price increases
+- Bitcoin price crashes
+
+### Fee Spikes
+
+Unusually high transaction fees from:
+- NFT/Ordinals minting
+- Exchange outflows
+- Network congestion
+- Market volatility
+
+## API Access
+
+Query mining data programmatically:
+
+<CodeGroup>
+```bash GET /api/v1/mining/pools
+curl "https://mempool.space/api/v1/mining/pools"
+```
+
+```bash GET /api/v1/mining/hashrate/pools
+curl "https://mempool.space/api/v1/mining/hashrate/pools/1m"
+```
+
+```bash GET /api/v1/mining/reward-stats
+curl "https://mempool.space/api/v1/mining/reward-stats/144"
+```
+
+```bash GET /api/v1/difficulty-adjustment
+curl "https://mempool.space/api/v1/difficulty-adjustment"
+```
+</CodeGroup>
+
+See [API Documentation](/api/mining/pools) for complete details.
+
+## Understanding Pool Types
+
+<Tabs>
+  <Tab title="PPS">
+    **Pay-Per-Share**
+    
+    - Miners paid per share submitted
+    - Pool takes all risk
+    - Steady predictable income
+    - Slightly lower rewards
+  </Tab>
+  
+  <Tab title="PPLNS">
+    **Pay-Per-Last-N-Shares**
+    
+    - Rewards based on shares when block found
+    - Variance in payouts
+    - Higher long-term rewards
+    - Pool luck matters
+  </Tab>
+  
+  <Tab title="FPPS">
+    **Full Pay-Per-Share**
+    
+    - PPS + share of transaction fees
+    - Most consistent payouts
+    - Popular among large miners
+  </Tab>
+  
+  <Tab title="SOLO">
+    **Solo Mining**
+    
+    - Keep entire block reward if found
+    - Extremely rare for individuals
+    - Very high variance
+    - High risk/high reward
+  </Tab>
+</Tabs>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Why is hashrate estimate changing?">
+    Hashrate is estimated from block times:
+    - Natural variance in when blocks are found
+    - Statistical averaging over recent blocks
+    - Difficulty changes affect calculations
+    - Use 7-day average for stability
+  </Accordion>
+  
+  <Accordion title="Why are blocks found faster/slower than 10 minutes?">
+    Block discovery is probabilistic:
+    - Random variation is normal
+    - Some blocks take 1 minute, others 30+
+    - Average converges to 10 minutes over 2,016 blocks
+    - Difficulty adjusts to correct the average
+  </Accordion>
+  
+  <Accordion title="What if one pool gets too large?">
+    Community concerns about centralization:
+    - Miners can switch pools freely
+    - Historical precedent: GHash.io voluntarily reduced size
+    - Decentralized pool protocols (P2Pool, Stratum V2)
+    - Market incentives favor decentralization
+  </Accordion>
+</AccordionGroup>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Blockchain Explorer" icon="magnifying-glass" href="/features/blockchain-explorer">
+    View individual blocks and transaction details
+  </Card>
+  
+  <Card title="Mempool Visualizer" icon="chart-area" href="/features/mempool-visualizer">
+    See which transactions miners are selecting
+  </Card>
+  
+  <Card title="Fee Estimation" icon="coins" href="/features/fee-estimation">
+    Understand transaction fee market dynamics
+  </Card>
+  
+  <Card title="Lightning Explorer" icon="bolt" href="/features/lightning-explorer">
+    Layer 2 solution for instant payments
+  </Card>
+</CardGroup>

@@ -1,0 +1,509 @@
+---
+title: 'Lightning Nodes API'
+description: 'Access detailed information about Lightning Network nodes, including statistics, rankings, and geographical data'
+---
+
+# Lightning Nodes API
+
+The Lightning Nodes API provides comprehensive information about nodes on the Lightning Network, including their capacity, channels, location data, and various rankings.
+
+## Get Node Details
+
+Retrieve detailed information about a specific Lightning Network node.
+
+```bash
+GET /api/v1/lightning/nodes/:public_key
+```
+
+<ParamField path="public_key" type="string" required>
+  The public key of the Lightning Network node (66 character hex string)
+</ParamField>
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/nodes/03864ef025fde8fb587d989186ce6a4a186895ee44a926bfc370e2c366597a3f8f"
+```
+
+### Response
+
+<ResponseField name="public_key" type="string">
+  The node's public key
+</ResponseField>
+
+<ResponseField name="alias" type="string">
+  The node's alias/name
+</ResponseField>
+
+<ResponseField name="first_seen" type="number">
+  Unix timestamp when the node was first seen
+</ResponseField>
+
+<ResponseField name="updated_at" type="number">
+  Unix timestamp of last update
+</ResponseField>
+
+<ResponseField name="color" type="string">
+  Hex color code for the node
+</ResponseField>
+
+<ResponseField name="sockets" type="string">
+  Comma-separated list of node addresses
+</ResponseField>
+
+<ResponseField name="active_channel_count" type="number">
+  Number of currently active channels
+</ResponseField>
+
+<ResponseField name="capacity" type="number">
+  Total capacity in satoshis
+</ResponseField>
+
+<ResponseField name="opened_channel_count" type="number">
+  Total number of opened channels (active + inactive)
+</ResponseField>
+
+<ResponseField name="closed_channel_count" type="number">
+  Number of closed channels
+</ResponseField>
+
+<ResponseField name="country" type="object">
+  Country information (localized names)
+</ResponseField>
+
+<ResponseField name="city" type="object">
+  City information (localized names)
+</ResponseField>
+
+<ResponseField name="subdivision" type="object">
+  Subdivision/state information (localized names)
+</ResponseField>
+
+<ResponseField name="iso_code" type="string">
+  Country ISO code
+</ResponseField>
+
+<ResponseField name="as_number" type="number">
+  Autonomous System number
+</ResponseField>
+
+<ResponseField name="as_organization" type="object">
+  ISP/organization information
+</ResponseField>
+
+<ResponseField name="longitude" type="number">
+  Geographic longitude
+</ResponseField>
+
+<ResponseField name="latitude" type="number">
+  Geographic latitude
+</ResponseField>
+
+<ResponseField name="features" type="array">
+  Array of Lightning Network features supported by the node
+</ResponseField>
+
+<ResponseField name="custom_records" type="object">
+  Custom TLV records associated with the node
+</ResponseField>
+
+---
+
+## Search Nodes
+
+Search for nodes by public key or alias.
+
+```bash
+GET /api/v1/lightning/nodes/search/:search
+```
+
+<ParamField path="search" type="string" required>
+  Search query (public key prefix or alias)
+</ParamField>
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/nodes/search/ACINQ"
+```
+
+### Response
+
+Returns an array of matching nodes (up to 10 results), ordered by capacity:
+
+<ResponseField name="public_key" type="string">
+  Node public key
+</ResponseField>
+
+<ResponseField name="alias" type="string">
+  Node alias
+</ResponseField>
+
+<ResponseField name="capacity" type="number">
+  Total capacity in satoshis
+</ResponseField>
+
+<ResponseField name="channels" type="number">
+  Number of channels
+</ResponseField>
+
+<ResponseField name="status" type="number">
+  Node status (0: inactive, 1: active)
+</ResponseField>
+
+---
+
+## Get Node Statistics
+
+Retrieve historical statistics for a specific node.
+
+```bash
+GET /api/v1/lightning/nodes/:public_key/statistics
+```
+
+<ParamField path="public_key" type="string" required>
+  The public key of the Lightning Network node
+</ParamField>
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/nodes/03864ef025fde8fb587d989186ce6a4a186895ee44a926bfc370e2c366597a3f8f/statistics"
+```
+
+### Response
+
+Returns an array of historical statistics entries:
+
+<ResponseField name="added" type="number">
+  Unix timestamp for this statistics entry
+</ResponseField>
+
+<ResponseField name="capacity" type="number">
+  Total capacity at this time
+</ResponseField>
+
+<ResponseField name="channels" type="number">
+  Number of channels at this time
+</ResponseField>
+
+---
+
+## Get Node Fee Histogram
+
+Retrieve fee rate distribution for a node's channels.
+
+```bash
+GET /api/v1/lightning/nodes/:public_key/fees/histogram
+```
+
+<ParamField path="public_key" type="string" required>
+  The public key of the Lightning Network node
+</ParamField>
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/nodes/03864ef025fde8fb587d989186ce6a4a186895ee44a926bfc370e2c366597a3f8f/fees/histogram"
+```
+
+### Response
+
+<ResponseField name="incoming" type="array">
+  Array of fee rate buckets for incoming channels
+  
+  <ResponseField name="bucket" type="number">
+    Fee rate bucket (in ppm)
+  </ResponseField>
+  
+  <ResponseField name="count" type="number">
+    Number of channels in this bucket
+  </ResponseField>
+  
+  <ResponseField name="capacity" type="number">
+    Total capacity in this bucket
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="outgoing" type="array">
+  Array of fee rate buckets for outgoing channels (same structure as incoming)
+</ResponseField>
+
+---
+
+## Get Node Rankings
+
+Retrieve top nodes ranked by capacity and connectivity.
+
+```bash
+GET /api/v1/lightning/nodes/rankings
+```
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/nodes/rankings"
+```
+
+### Response
+
+<ResponseField name="topByCapacity" type="array">
+  Top 6 nodes by capacity (abbreviated view)
+  
+  <ResponseField name="publicKey" type="string">
+    Node public key
+  </ResponseField>
+  
+  <ResponseField name="alias" type="string">
+    Node alias
+  </ResponseField>
+  
+  <ResponseField name="capacity" type="number">
+    Total capacity
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="topByChannels" type="array">
+  Top 6 nodes by channel count (same structure as topByCapacity, plus channels field)
+</ResponseField>
+
+---
+
+## Get Top Nodes by Liquidity
+
+Retrieve the top 100 nodes ranked by capacity.
+
+```bash
+GET /api/v1/lightning/nodes/rankings/liquidity
+```
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/nodes/rankings/liquidity"
+```
+
+### Response
+
+Returns an array of the top 100 nodes with detailed information including:
+- Public key and alias
+- Capacity and channel count
+- First seen and last updated timestamps
+- Geographic location data
+- Country and city information
+
+---
+
+## Get Top Nodes by Connectivity
+
+Retrieve the top 100 nodes ranked by number of channels.
+
+```bash
+GET /api/v1/lightning/nodes/rankings/connectivity
+```
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/nodes/rankings/connectivity"
+```
+
+---
+
+## Get Oldest Nodes
+
+Retrieve the top 100 oldest nodes on the network.
+
+```bash
+GET /api/v1/lightning/nodes/rankings/age
+```
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/nodes/rankings/age"
+```
+
+---
+
+## Get ISP Ranking
+
+Retrieve nodes grouped by Internet Service Provider.
+
+```bash
+GET /api/v1/lightning/nodes/isp-ranking
+```
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/nodes/isp-ranking"
+```
+
+### Response
+
+<ResponseField name="clearnetCapacity" type="number">
+  Total capacity of clearnet channels
+</ResponseField>
+
+<ResponseField name="torCapacity" type="number">
+  Total capacity of Tor-only channels
+</ResponseField>
+
+<ResponseField name="unknownCapacity" type="number">
+  Capacity that cannot be categorized
+</ResponseField>
+
+<ResponseField name="ispRanking" type="array">
+  Array of ISP rankings, where each entry contains:
+  - ISP IDs (comma-separated)
+  - ISP name
+  - Total capacity
+  - Channel count
+  - Node count
+</ResponseField>
+
+---
+
+## Get Nodes by ISP
+
+Retrieve all nodes hosted by a specific ISP.
+
+```bash
+GET /api/v1/lightning/nodes/isp/:isp
+```
+
+<ParamField path="isp" type="string" required>
+  ISP identifier (AS number)
+</ParamField>
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/nodes/isp/16509"
+```
+
+---
+
+## Get Nodes by Country
+
+Retrieve all nodes in a specific country.
+
+```bash
+GET /api/v1/lightning/nodes/country/:country
+```
+
+<ParamField path="country" type="string" required>
+  Country ISO code (e.g., US, DE, JP)
+</ParamField>
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/nodes/country/US"
+```
+
+### Response
+
+<ResponseField name="country" type="object">
+  Country information with localized names
+</ResponseField>
+
+<ResponseField name="nodes" type="array">
+  Array of nodes in the country with full details
+</ResponseField>
+
+---
+
+## Get Countries List
+
+Retrieve a list of all countries with Lightning nodes.
+
+```bash
+GET /api/v1/lightning/nodes/countries
+```
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/nodes/countries"
+```
+
+### Response
+
+Returns an array of countries:
+
+<ResponseField name="name" type="object">
+  Localized country names
+</ResponseField>
+
+<ResponseField name="iso" type="string">
+  Country ISO code
+</ResponseField>
+
+<ResponseField name="count" type="number">
+  Number of nodes in the country
+</ResponseField>
+
+<ResponseField name="share" type="number">
+  Percentage share of total nodes
+</ResponseField>
+
+<ResponseField name="capacity" type="number">
+  Total capacity of nodes in the country
+</ResponseField>
+
+---
+
+## Get World Nodes Map
+
+Retrieve geographical data for all nodes worldwide.
+
+```bash
+GET /api/v1/lightning/nodes/world
+```
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/nodes/world"
+```
+
+### Response
+
+<ResponseField name="maxLiquidity" type="number">
+  Maximum capacity among all nodes
+</ResponseField>
+
+<ResponseField name="maxChannels" type="number">
+  Maximum channel count among all nodes
+</ResponseField>
+
+<ResponseField name="nodes" type="array">
+  Array of node data for map visualization, where each entry is an array containing:
+  [longitude, latitude, publicKey, alias, capacity, channels, country, isoCode]
+</ResponseField>
+
+---
+
+## Get Node Group
+
+Retrieve information about a predefined group of nodes (Mempool team nodes).
+
+```bash
+GET /api/v1/lightning/nodes/group/:name
+```
+
+<ParamField path="name" type="string" required>
+  Group name (currently only supports network-specific default groups)
+</ParamField>
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/nodes/group/default"
+```
+
+### Response
+
+Returns an array of node objects with full details for each node in the group.

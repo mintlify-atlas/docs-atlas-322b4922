@@ -1,0 +1,225 @@
+---
+title: 'Bitcoin Price API'
+description: 'Real-time Bitcoin price data in multiple currencies'
+---
+
+## Overview
+
+The Bitcoin Price API provides current Bitcoin exchange rates in multiple fiat currencies. Prices are updated regularly and cached for performance.
+
+## Endpoint
+
+### Get Current Prices
+
+<ParamField path="GET" type="endpoint">
+  `/api/v1/prices`
+</ParamField>
+
+Returns the latest Bitcoin exchange rates in multiple fiat currencies.
+
+**Response Headers**
+
+The response includes cache control headers:
+
+- `Pragma: public`
+- `Cache-control: public`
+- `Expires`: Set based on price update frequency
+
+**Response**
+
+<ResponseField name="prices" type="object">
+  <ResponseField name="time" type="number" optional>
+    Unix timestamp of the price data
+  </ResponseField>
+  <ResponseField name="USD" type="number" required>
+    Bitcoin price in US Dollars
+  </ResponseField>
+  <ResponseField name="EUR" type="number" required>
+    Bitcoin price in Euros
+  </ResponseField>
+  <ResponseField name="GBP" type="number" required>
+    Bitcoin price in British Pounds
+  </ResponseField>
+  <ResponseField name="CAD" type="number" required>
+    Bitcoin price in Canadian Dollars
+  </ResponseField>
+  <ResponseField name="CHF" type="number" required>
+    Bitcoin price in Swiss Francs
+  </ResponseField>
+  <ResponseField name="AUD" type="number" required>
+    Bitcoin price in Australian Dollars
+  </ResponseField>
+  <ResponseField name="JPY" type="number" required>
+    Bitcoin price in Japanese Yen
+  </ResponseField>
+  <ResponseField name="BGN" type="number" required>
+    Bitcoin price in Bulgarian Lev
+  </ResponseField>
+  <ResponseField name="BRL" type="number" required>
+    Bitcoin price in Brazilian Real
+  </ResponseField>
+  <ResponseField name="CNY" type="number" required>
+    Bitcoin price in Chinese Yuan
+  </ResponseField>
+  <ResponseField name="CZK" type="number" required>
+    Bitcoin price in Czech Koruna
+  </ResponseField>
+  <ResponseField name="DKK" type="number" required>
+    Bitcoin price in Danish Krone
+  </ResponseField>
+  <ResponseField name="HKD" type="number" required>
+    Bitcoin price in Hong Kong Dollar
+  </ResponseField>
+  <ResponseField name="HRK" type="number" required>
+    Bitcoin price in Croatian Kuna
+  </ResponseField>
+  <ResponseField name="HUF" type="number" required>
+    Bitcoin price in Hungarian Forint
+  </ResponseField>
+  <ResponseField name="IDR" type="number" required>
+    Bitcoin price in Indonesian Rupiah
+  </ResponseField>
+  <ResponseField name="ILS" type="number" required>
+    Bitcoin price in Israeli Shekel
+  </ResponseField>
+  <ResponseField name="INR" type="number" required>
+    Bitcoin price in Indian Rupee
+  </ResponseField>
+  <ResponseField name="ISK" type="number" required>
+    Bitcoin price in Icelandic Króna
+  </ResponseField>
+  <ResponseField name="KRW" type="number" required>
+    Bitcoin price in South Korean Won
+  </ResponseField>
+  <ResponseField name="MXN" type="number" required>
+    Bitcoin price in Mexican Peso
+  </ResponseField>
+  <ResponseField name="MYR" type="number" required>
+    Bitcoin price in Malaysian Ringgit
+  </ResponseField>
+  <ResponseField name="NOK" type="number" required>
+    Bitcoin price in Norwegian Krone
+  </ResponseField>
+  <ResponseField name="NZD" type="number" required>
+    Bitcoin price in New Zealand Dollar
+  </ResponseField>
+  <ResponseField name="PHP" type="number" required>
+    Bitcoin price in Philippine Peso
+  </ResponseField>
+  <ResponseField name="PLN" type="number" required>
+    Bitcoin price in Polish Złoty
+  </ResponseField>
+  <ResponseField name="RON" type="number" required>
+    Bitcoin price in Romanian Leu
+  </ResponseField>
+  <ResponseField name="RUB" type="number" required>
+    Bitcoin price in Russian Ruble
+  </ResponseField>
+  <ResponseField name="SEK" type="number" required>
+    Bitcoin price in Swedish Krona
+  </ResponseField>
+  <ResponseField name="SGD" type="number" required>
+    Bitcoin price in Singapore Dollar
+  </ResponseField>
+  <ResponseField name="THB" type="number" required>
+    Bitcoin price in Thai Baht
+  </ResponseField>
+  <ResponseField name="TRY" type="number" required>
+    Bitcoin price in Turkish Lira
+  </ResponseField>
+  <ResponseField name="ZAR" type="number" required>
+    Bitcoin price in South African Rand
+  </ResponseField>
+</ResponseField>
+
+**Example Response**
+
+```json
+{
+  "time": 1640000000,
+  "USD": 45000.50,
+  "EUR": 39500.25,
+  "GBP": 33200.75,
+  "CAD": 57100.00,
+  "CHF": 41300.50,
+  "AUD": 62500.25,
+  "JPY": 5100000.00,
+  "BGN": 77300.00,
+  "BRL": 248000.00,
+  "CNY": 286500.00,
+  "CZK": 973000.00,
+  "DKK": 293500.00,
+  "HKD": 350000.00,
+  "HRK": 297500.00,
+  "HUF": 14250000.00,
+  "IDR": 641000000.00,
+  "ILS": 143000.00,
+  "INR": 3345000.00,
+  "ISK": 5790000.00,
+  "KRW": 53400000.00,
+  "MXN": 923000.00,
+  "MYR": 188500.00,
+  "NOK": 389500.00,
+  "NZD": 65700.00,
+  "PHP": 2275000.00,
+  "PLN": 178500.00,
+  "RON": 195500.00,
+  "RUB": 3345000.00,
+  "SEK": 392000.00,
+  "SGD": 60500.00,
+  "THB": 1495000.00,
+  "TRY": 605000.00,
+  "ZAR": 695000.00
+}
+```
+
+## Usage Notes
+
+### Caching
+
+Price data is cached and updated at a configurable interval (default is multiple times per hour). The `Expires` header indicates when the next price update will occur.
+
+### Currency Support
+
+All major global currencies are supported. The availability of certain currencies may depend on the configured price data provider.
+
+### Rate Limiting
+
+This endpoint is designed for public access with appropriate caching headers. Clients should respect the cache headers to minimize redundant requests.
+
+## Example Usage
+
+### JavaScript/TypeScript
+
+```typescript
+async function getBitcoinPrices() {
+  const response = await fetch('https://mempool.space/api/v1/prices');
+  const prices = await response.json();
+  
+  console.log(`Bitcoin price in USD: $${prices.USD}`);
+  console.log(`Bitcoin price in EUR: €${prices.EUR}`);
+  
+  return prices;
+}
+```
+
+### Python
+
+```python
+import requests
+
+def get_bitcoin_prices():
+    response = requests.get('https://mempool.space/api/v1/prices')
+    prices = response.json()
+    
+    print(f"Bitcoin price in USD: ${prices['USD']}")
+    print(f"Bitcoin price in EUR: €{prices['EUR']}")
+    
+    return prices
+```
+
+### cURL
+
+```bash
+curl https://mempool.space/api/v1/prices
+```

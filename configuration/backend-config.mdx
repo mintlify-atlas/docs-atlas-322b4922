@@ -1,0 +1,425 @@
+---
+title: 'Backend Configuration'
+description: 'Complete guide to configuring the Mempool backend through mempool-config.json'
+icon: 'server'
+---
+
+The Mempool backend is configured through the `mempool-config.json` file located in the backend directory. This file controls all aspects of the backend's behavior, from Bitcoin Core RPC connections to database settings and caching strategies.
+
+## Configuration File Location
+
+By default, the backend looks for `mempool-config.json` in the backend directory. You can specify a custom location using the `MEMPOOL_CONFIG_FILE` environment variable:
+
+```bash
+MEMPOOL_CONFIG_FILE=/path/to/mempool-config.json npm run start
+```
+
+<Note>
+All configuration options can be overridden with environment variables when using Docker. See the Docker README for details on environment variable naming conventions.
+</Note>
+
+## Core Configuration Sections
+
+<Tabs>
+  <Tab title="MEMPOOL">
+    ### Main Application Settings
+
+    The `MEMPOOL` section controls the core behavior of the Mempool application.
+
+    | Parameter | Type | Default | Description |
+    |-----------|------|---------|-------------|
+    | `NETWORK` | string | `mainnet` | Bitcoin network: `mainnet`, `testnet`, `testnet4`, `signet`, `liquid`, `liquidtestnet`, or `regtest` |
+    | `BACKEND` | string | `none` | Electrum backend type: `electrum`, `esplora`, or `none` |
+    | `ENABLED` | boolean | `true` | Enable/disable the Mempool application |
+    | `HTTP_PORT` | number | `8999` | HTTP port for the backend API |
+    | `UNIX_SOCKET_PATH` | string | `""` | Unix socket path (alternative to HTTP port) |
+    | `SPAWN_CLUSTER_PROCS` | number | `0` | Number of cluster processes to spawn (0 = disabled) |
+    | `API_URL_PREFIX` | string | `/api/v1/` | API URL prefix |
+    | `POLL_RATE_MS` | number | `2000` | Mempool polling interval in milliseconds |
+
+    <Accordion title="Advanced MEMPOOL Options">
+      | Parameter | Type | Default | Description |
+      |-----------|------|---------|-------------|
+      | `CACHE_DIR` | string | `./cache` | Directory for caching data |
+      | `CACHE_ENABLED` | boolean | `true` | Enable/disable caching |
+      | `CLEAR_PROTECTION_MINUTES` | number | `20` | Minutes to protect cache from clearing |
+      | `RECOMMENDED_FEE_PERCENTILE` | number | `50` | Percentile for recommended fee calculation |
+      | `BLOCK_WEIGHT_UNITS` | number | `4000000` | Maximum block weight in weight units |
+      | `INITIAL_BLOCKS_AMOUNT` | number | `8` | Number of initial blocks to load |
+      | `MEMPOOL_BLOCKS_AMOUNT` | number | `8` | Number of mempool blocks to display |
+      | `INDEXING_BLOCKS_AMOUNT` | number | `11000` | Blocks to index (0 = disable, -1 = all blocks) |
+      | `BLOCKS_SUMMARIES_INDEXING` | boolean | `false` | Enable block summaries indexing |
+      | `GOGGLES_INDEXING` | boolean | `false` | Enable goggles indexing |
+      | `USE_SECOND_NODE_FOR_MINFEE` | boolean | `false` | Use second Bitcoin Core node for min fee |
+      | `EXTERNAL_ASSETS` | array | `[]` | External asset configurations |
+      | `EXTERNAL_MAX_RETRY` | number | `1` | Maximum retries for external requests |
+      | `EXTERNAL_RETRY_INTERVAL` | number | `0` | Retry interval in milliseconds |
+      | `USER_AGENT` | string | `mempool` | User agent for external requests |
+      | `STDOUT_LOG_MIN_PRIORITY` | string | `debug` | Minimum log priority: `emerg`, `alert`, `crit`, `err`, `warn`, `notice`, `info`, or `debug` |
+      | `AUTOMATIC_POOLS_UPDATE` | boolean | `false` | Automatically update mining pools data |
+      | `POOLS_JSON_URL` | string | GitHub URL | URL for mining pools JSON data |
+      | `POOLS_JSON_TREE_URL` | string | GitHub API URL | URL for mining pools tree data |
+      | `POOLS_UPDATE_DELAY` | number | `604800` | Mining pools update delay in seconds (default: 1 week) |
+      | `AUDIT` | boolean | `false` | Enable block audit functionality |
+      | `RUST_GBT` | boolean | `true` | Use Rust implementation for GetBlockTemplate |
+      | `LIMIT_GBT` | boolean | `false` | Limit GetBlockTemplate results |
+      | `CPFP_INDEXING` | boolean | `false` | Enable Child Pays For Parent indexing |
+      | `MAX_BLOCKS_BULK_QUERY` | number | `0` | Maximum blocks per bulk query (0 = unlimited) |
+      | `DISK_CACHE_BLOCK_INTERVAL` | number | `6` | Block interval for disk caching |
+      | `MAX_PUSH_TX_SIZE_WEIGHT` | number | `400000` | Maximum transaction size for push in weight units |
+      | `ALLOW_UNREACHABLE` | boolean | `true` | Allow connections to unreachable nodes |
+      | `PRICE_UPDATES_PER_HOUR` | number | `1` | Bitcoin price updates per hour |
+      | `MAX_TRACKED_ADDRESSES` | number | `1` | Maximum number of tracked addresses |
+    </Accordion>
+
+    <Warning>
+    Setting `INDEXING_BLOCKS_AMOUNT` to `-1` will index all blocks, which requires significant storage and processing time. Use with caution.
+    </Warning>
+
+    **Example Configuration:**
+    ```json
+    {
+      "MEMPOOL": {
+        "NETWORK": "mainnet",
+        "BACKEND": "electrum",
+        "ENABLED": true,
+        "HTTP_PORT": 8999,
+        "SPAWN_CLUSTER_PROCS": 0,
+        "API_URL_PREFIX": "/api/v1/",
+        "POLL_RATE_MS": 2000,
+        "CACHE_DIR": "./cache",
+        "RECOMMENDED_FEE_PERCENTILE": 50,
+        "INDEXING_BLOCKS_AMOUNT": 11000,
+        "CPFP_INDEXING": false
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="STATISTICS">
+    ### Statistics Configuration
+
+    Configure statistics collection and reporting.
+
+    | Parameter | Type | Default | Description |
+    |-----------|------|---------|-------------|
+    | `ENABLED` | boolean | `true` | Enable statistics collection |
+    | `TX_PER_SECOND_SAMPLE_PERIOD` | number | `150` | Sample period for transactions per second calculation |
+
+    **Example Configuration:**
+    ```json
+    {
+      "STATISTICS": {
+        "ENABLED": true,
+        "TX_PER_SECOND_SAMPLE_PERIOD": 150
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="SYSLOG">
+    ### Syslog Configuration
+
+    Configure syslog logging for system monitoring and debugging.
+
+    | Parameter | Type | Default | Description |
+    |-----------|------|---------|-------------|
+    | `ENABLED` | boolean | `true` | Enable syslog logging |
+    | `HOST` | string | `127.0.0.1` | Syslog server host |
+    | `PORT` | number | `514` | Syslog server port |
+    | `MIN_PRIORITY` | string | `info` | Minimum log priority: `emerg`, `alert`, `crit`, `err`, `warn`, `notice`, `info`, or `debug` |
+    | `FACILITY` | string | `local7` | Syslog facility |
+
+    **Example Configuration:**
+    ```json
+    {
+      "SYSLOG": {
+        "ENABLED": true,
+        "HOST": "127.0.0.1",
+        "PORT": 514,
+        "MIN_PRIORITY": "info",
+        "FACILITY": "local7"
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="SOCKS5PROXY">
+    ### SOCKS5 Proxy Configuration
+
+    Configure SOCKS5 proxy for external connections, including Tor support.
+
+    | Parameter | Type | Default | Description |
+    |-----------|------|---------|-------------|
+    | `ENABLED` | boolean | `false` | Enable SOCKS5 proxy |
+    | `USE_ONION` | boolean | `true` | Use .onion addresses when available |
+    | `HOST` | string | `127.0.0.1` | SOCKS5 proxy host |
+    | `PORT` | number | `9050` | SOCKS5 proxy port |
+    | `USERNAME` | string | `""` | SOCKS5 authentication username |
+    | `PASSWORD` | string | `""` | SOCKS5 authentication password |
+
+    **Example Configuration:**
+    ```json
+    {
+      "SOCKS5PROXY": {
+        "ENABLED": true,
+        "USE_ONION": true,
+        "HOST": "127.0.0.1",
+        "PORT": 9050,
+        "USERNAME": "",
+        "PASSWORD": ""
+      }
+    }
+    ```
+
+    <Note>
+    The default port `9050` is the standard Tor SOCKS5 proxy port. Make sure Tor is running if you enable this feature.
+    </Note>
+  </Tab>
+</Tabs>
+
+## Advanced Configuration Sections
+
+<AccordionGroup>
+  <Accordion title="EXTERNAL_DATA_SERVER - External Data Sources">
+    Configure external data servers for additional blockchain data.
+
+    | Parameter | Type | Default | Description |
+    |-----------|------|---------|-------------|
+    | `MEMPOOL_API` | string | `https://mempool.space/api/v1` | External Mempool API endpoint |
+    | `MEMPOOL_ONION` | string | Onion address | External Mempool API Tor onion address |
+    | `LIQUID_API` | string | `https://liquid.network/api/v1` | External Liquid API endpoint |
+    | `LIQUID_ONION` | string | Onion address | External Liquid API Tor onion address |
+
+    **Example:**
+    ```json
+    {
+      "EXTERNAL_DATA_SERVER": {
+        "MEMPOOL_API": "https://mempool.space/api/v1",
+        "MEMPOOL_ONION": "http://mempoolhqx4isw62xs7abwphsq7ldayuidyx2v2oethdhhj6mlo2r6ad.onion/api/v1"
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="MAXMIND - Geolocation Database">
+    Configure MaxMind GeoIP databases for geolocation features.
+
+    | Parameter | Type | Default | Description |
+    |-----------|------|---------|-------------|
+    | `ENABLED` | boolean | `false` | Enable MaxMind geolocation |
+    | `GEOLITE2_CITY` | string | Path | Path to GeoLite2-City.mmdb database |
+    | `GEOLITE2_ASN` | string | Path | Path to GeoLite2-ASN.mmdb database |
+    | `GEOIP2_ISP` | string | Path | Path to GeoIP2-ISP.mmdb database |
+
+    **Example:**
+    ```json
+    {
+      "MAXMIND": {
+        "ENABLED": true,
+        "GEOLITE2_CITY": "/usr/local/share/GeoIP/GeoLite2-City.mmdb",
+        "GEOLITE2_ASN": "/usr/local/share/GeoIP/GeoLite2-ASN.mmdb",
+        "GEOIP2_ISP": "/usr/local/share/GeoIP/GeoIP2-ISP.mmdb"
+      }
+    }
+    ```
+
+    <Note>
+    You need to download MaxMind databases separately. Visit [MaxMind's website](https://www.maxmind.com/) to obtain the database files.
+    </Note>
+  </Accordion>
+
+  <Accordion title="REPLICATION - Data Replication">
+    Configure data replication from other Mempool instances.
+
+    | Parameter | Type | Default | Description |
+    |-----------|------|---------|-------------|
+    | `ENABLED` | boolean | `false` | Enable data replication |
+    | `AUDIT` | boolean | `false` | Replicate audit data |
+    | `AUDIT_START_HEIGHT` | number | `774000` | Block height to start audit replication |
+    | `STATISTICS` | boolean | `false` | Replicate statistics data |
+    | `STATISTICS_START_TIME` | number/string | `1481932800` | Unix timestamp to start statistics replication |
+    | `SERVERS` | array | `[]` | Array of replication server URLs |
+
+    **Example:**
+    ```json
+    {
+      "REPLICATION": {
+        "ENABLED": true,
+        "AUDIT": true,
+        "AUDIT_START_HEIGHT": 774000,
+        "STATISTICS": true,
+        "SERVERS": [
+          "https://mempool.space",
+          "https://mempool.ninja"
+        ]
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="MEMPOOL_SERVICES - Mempool Services Integration">
+    Configure integration with Mempool Services API.
+
+    | Parameter | Type | Default | Description |
+    |-----------|------|---------|-------------|
+    | `API` | string | `""` | Mempool Services API endpoint |
+    | `ACCELERATIONS` | boolean | `false` | Enable transaction acceleration feature |
+
+    **Example:**
+    ```json
+    {
+      "MEMPOOL_SERVICES": {
+        "API": "https://api.mempool.services",
+        "ACCELERATIONS": true
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="REDIS - Redis Caching">
+    Configure Redis for high-performance caching.
+
+    | Parameter | Type | Default | Description |
+    |-----------|------|---------|-------------|
+    | `ENABLED` | boolean | `false` | Enable Redis caching |
+    | `UNIX_SOCKET_PATH` | string | `""` | Unix socket path for Redis connection |
+    | `BATCH_QUERY_BASE_SIZE` | number | `5000` | Base size for batch queries |
+
+    **Example:**
+    ```json
+    {
+      "REDIS": {
+        "ENABLED": true,
+        "UNIX_SOCKET_PATH": "/var/run/redis/redis.sock",
+        "BATCH_QUERY_BASE_SIZE": 5000
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="FIAT_PRICE - Fiat Price Data">
+    Configure fiat currency price tracking.
+
+    | Parameter | Type | Default | Description |
+    |-----------|------|---------|-------------|
+    | `ENABLED` | boolean | `true` | Enable fiat price tracking |
+    | `PAID` | boolean | `false` | Use paid API tier |
+    | `API_KEY` | string | `""` | API key for paid tier |
+
+    **Example:**
+    ```json
+    {
+      "FIAT_PRICE": {
+        "ENABLED": true,
+        "PAID": false,
+        "API_KEY": ""
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="WALLETS - Wallet Tracking">
+    Configure wallet address tracking features.
+
+    | Parameter | Type | Default | Description |
+    |-----------|------|---------|-------------|
+    | `ENABLED` | boolean | `false` | Enable wallet tracking |
+    | `AUTO` | boolean | `false` | Automatically discover wallets |
+    | `WALLETS` | array | `[]` | Array of wallet addresses to track |
+
+    **Example:**
+    ```json
+    {
+      "WALLETS": {
+        "ENABLED": true,
+        "AUTO": false,
+        "WALLETS": [
+          "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+        ]
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="STRATUM - Stratum Mining Integration">
+    Configure Stratum mining protocol integration.
+
+    | Parameter | Type | Default | Description |
+    |-----------|------|---------|-------------|
+    | `ENABLED` | boolean | `false` | Enable Stratum integration |
+    | `API` | string | `http://localhost:1234` | Stratum API endpoint |
+
+    **Example:**
+    ```json
+    {
+      "STRATUM": {
+        "ENABLED": true,
+        "API": "http://localhost:1234"
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Configuration Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Start Simple" icon="rocket">
+    Begin with minimal configuration and enable features as needed. Most defaults are suitable for typical deployments.
+  </Card>
+  
+  <Card title="Enable Indexing" icon="database">
+    Set `INDEXING_BLOCKS_AMOUNT` to enable historical block data. This improves user experience but requires more storage.
+  </Card>
+  
+  <Card title="Monitor Logs" icon="chart-line">
+    Configure appropriate `STDOUT_LOG_MIN_PRIORITY` levels. Use `info` for production, `debug` for development.
+  </Card>
+  
+  <Card title="Secure RPC" icon="shield">
+    Always use strong credentials for Bitcoin Core RPC and database connections. Never use default passwords in production.
+  </Card>
+</CardGroup>
+
+## Environment Variables Override (Docker)
+
+When using Docker, configuration options can be overridden with environment variables using the following pattern:
+
+- Nested JSON keys are joined with underscores
+- Section names are uppercased
+- Example: `MEMPOOL.NETWORK` → `MEMPOOL_NETWORK`
+
+```yaml
+api:
+  environment:
+    MEMPOOL_NETWORK: "mainnet"
+    MEMPOOL_BACKEND: "electrum"
+    MEMPOOL_HTTP_PORT: "8999"
+    MEMPOOL_INDEXING_BLOCKS_AMOUNT: "11000"
+    MEMPOOL_CPFP_INDEXING: "true"
+```
+
+<Note>
+For a complete list of environment variable overrides, see the [Docker README](https://github.com/mempool/mempool/blob/master/docker/README.md).
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Bitcoin Core Setup" icon="bitcoin" href="/configuration/bitcoin-core">
+    Configure Bitcoin Core RPC connection
+  </Card>
+  
+  <Card title="Database Setup" icon="database" href="/configuration/database">
+    Set up and configure MariaDB
+  </Card>
+  
+  <Card title="Electrum Server" icon="bolt" href="/configuration/electrum-server">
+    Connect an Electrum server for address lookups
+  </Card>
+  
+  <Card title="Frontend Config" icon="browser" href="/configuration/frontend-config">
+    Configure the frontend application
+  </Card>
+</CardGroup>

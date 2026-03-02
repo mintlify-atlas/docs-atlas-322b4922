@@ -1,0 +1,422 @@
+---
+title: 'Lightning Channels API'
+description: 'Access information about Lightning Network channels, including capacity, fees, and geographical connections'
+---
+
+# Lightning Channels API
+
+The Lightning Channels API provides detailed information about payment channels on the Lightning Network, including their capacity, routing fees, and connection details between nodes.
+
+## Get Channel Details
+
+Retrieve detailed information about a specific Lightning Network channel.
+
+```bash
+GET /api/v1/lightning/channels/:short_id
+```
+
+<ParamField path="short_id" type="string" required>
+  The channel's short ID or full ID
+</ParamField>
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/channels/800000x2048x0"
+```
+
+### Response
+
+<ResponseField name="id" type="string">
+  Channel ID
+</ResponseField>
+
+<ResponseField name="short_id" type="string">
+  Channel short ID (format: block x tx x output)
+</ResponseField>
+
+<ResponseField name="capacity" type="number">
+  Channel capacity in satoshis
+</ResponseField>
+
+<ResponseField name="transaction_id" type="string">
+  Opening transaction ID
+</ResponseField>
+
+<ResponseField name="transaction_vout" type="number">
+  Output index in the opening transaction
+</ResponseField>
+
+<ResponseField name="closing_transaction_id" type="string">
+  Closing transaction ID (if closed)
+</ResponseField>
+
+<ResponseField name="closing_fee" type="number">
+  Fee paid to close the channel
+</ResponseField>
+
+<ResponseField name="closing_reason" type="number">
+  Reason for channel closure:
+  - 1: Cooperative close
+  - 2: Force close
+  - 3: Breach (penalty transaction)
+</ResponseField>
+
+<ResponseField name="closing_date" type="string">
+  Date when channel was closed
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  Last update timestamp
+</ResponseField>
+
+<ResponseField name="created" type="string">
+  Channel creation timestamp
+</ResponseField>
+
+<ResponseField name="status" type="number">
+  Channel status:
+  - 0: Inactive
+  - 1: Active
+  - 2: Closed
+</ResponseField>
+
+<ResponseField name="funding_ratio" type="number">
+  Ratio of funding between the two nodes
+</ResponseField>
+
+<ResponseField name="closed_by" type="string">
+  Public key of the node that initiated the close
+</ResponseField>
+
+<ResponseField name="single_funded" type="boolean">
+  Whether the channel was funded by a single party
+</ResponseField>
+
+<ResponseField name="node_left" type="object">
+  Information about the first node
+  
+  <ResponseField name="alias" type="string">
+    Node alias
+  </ResponseField>
+  
+  <ResponseField name="public_key" type="string">
+    Node public key
+  </ResponseField>
+  
+  <ResponseField name="channels" type="number">
+    Total channel count
+  </ResponseField>
+  
+  <ResponseField name="capacity" type="number">
+    Total capacity
+  </ResponseField>
+  
+  <ResponseField name="base_fee_mtokens" type="string">
+    Base fee in millisatoshis
+  </ResponseField>
+  
+  <ResponseField name="cltv_delta" type="number">
+    CLTV expiry delta
+  </ResponseField>
+  
+  <ResponseField name="fee_rate" type="number">
+    Fee rate in ppm (parts per million)
+  </ResponseField>
+  
+  <ResponseField name="is_disabled" type="boolean">
+    Whether the channel is disabled in this direction
+  </ResponseField>
+  
+  <ResponseField name="max_htlc_mtokens" type="string">
+    Maximum HTLC size
+  </ResponseField>
+  
+  <ResponseField name="min_htlc_mtokens" type="string">
+    Minimum HTLC size
+  </ResponseField>
+  
+  <ResponseField name="longitude" type="number">
+    Node longitude
+  </ResponseField>
+  
+  <ResponseField name="latitude" type="number">
+    Node latitude
+  </ResponseField>
+  
+  <ResponseField name="funding_balance" type="number">
+    Balance contributed during channel opening
+  </ResponseField>
+  
+  <ResponseField name="closing_balance" type="number">
+    Balance at channel closure
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="node_right" type="object">
+  Information about the second node (same structure as node_left)
+</ResponseField>
+
+---
+
+## Search Channels
+
+Search for channels by ID or short ID.
+
+```bash
+GET /api/v1/lightning/channels/search/:search
+```
+
+<ParamField path="search" type="string" required>
+  Search query (channel ID or short ID prefix)
+</ParamField>
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/channels/search/800000"
+```
+
+### Response
+
+Returns an array of matching channels (up to 10 results):
+
+<ResponseField name="id" type="string">
+  Channel ID
+</ResponseField>
+
+<ResponseField name="short_id" type="string">
+  Channel short ID
+</ResponseField>
+
+<ResponseField name="capacity" type="number">
+  Channel capacity
+</ResponseField>
+
+<ResponseField name="status" type="number">
+  Channel status (0: inactive, 1: active, 2: closed)
+</ResponseField>
+
+---
+
+## Get Channels for Node
+
+Retrieve channels connected to a specific node.
+
+```bash
+GET /api/v1/lightning/channels?public_key=:public_key&status=:status&index=:index
+```
+
+<ParamField query="public_key" type="string" required>
+  The public key of the node
+</ParamField>
+
+<ParamField query="status" type="string" required>
+  Channel status filter:
+  - `open`: All open channels (active + inactive)
+  - `active`: Only active channels
+  - `closed`: Closed channels
+</ParamField>
+
+<ParamField query="index" type="number" default="0">
+  Pagination index (10 results per page, or -1 for first 1000 channels)
+</ParamField>
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/channels?public_key=03864ef025fde8fb587d989186ce6a4a186895ee44a926bfc370e2c366597a3f8f&status=active&index=0"
+```
+
+### Response Headers
+
+<ResponseField name="X-Total-Count" type="string">
+  Total number of channels matching the criteria
+</ResponseField>
+
+### Response Body
+
+Returns an array of channel objects:
+
+<ResponseField name="status" type="number">
+  Channel status
+</ResponseField>
+
+<ResponseField name="closing_reason" type="number">
+  Closing reason (if applicable)
+</ResponseField>
+
+<ResponseField name="closing_date" type="number">
+  Unix timestamp of closure
+</ResponseField>
+
+<ResponseField name="capacity" type="number">
+  Channel capacity
+</ResponseField>
+
+<ResponseField name="short_id" type="string">
+  Channel short ID
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  Channel ID
+</ResponseField>
+
+<ResponseField name="fee_rate" type="number">
+  Fee rate for this channel direction
+</ResponseField>
+
+<ResponseField name="node" type="object">
+  Information about the connected node
+  
+  <ResponseField name="alias" type="string">
+    Node alias
+  </ResponseField>
+  
+  <ResponseField name="public_key" type="string">
+    Node public key
+  </ResponseField>
+  
+  <ResponseField name="channels" type="number">
+    Node's total channel count
+  </ResponseField>
+  
+  <ResponseField name="capacity" type="number">
+    Node's total capacity
+  </ResponseField>
+</ResponseField>
+
+---
+
+## Get Channels by Transaction IDs
+
+Retrieve channel information for multiple transaction IDs.
+
+```bash
+GET /api/v1/lightning/channels/txids?txId[]=:txid1&txId[]=:txid2
+```
+
+<ParamField query="txId[]" type="string" required>
+  Transaction ID(s) to query (can specify multiple)
+</ParamField>
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/channels/txids?txId[]=abcd1234...&txId[]=efgh5678..."
+```
+
+### Response
+
+Returns an array where each element corresponds to a requested transaction ID:
+
+<ResponseField name="inputs" type="object">
+  Channels where this transaction is the closing transaction (indexed by input)
+</ResponseField>
+
+<ResponseField name="outputs" type="object">
+  Channels where this transaction is the opening transaction (indexed by output)
+</ResponseField>
+
+---
+
+## Get Penalty Closed Channels
+
+Retrieve channels that were closed with a penalty transaction (breach).
+
+```bash
+GET /api/v1/lightning/penalties
+```
+
+### Example Request
+
+```bash
+curl "https://mempool.space/api/v1/lightning/penalties"
+```
+
+### Response
+
+Returns an array of penalty closed channels with full channel details including:
+- Channel information
+- Both node aliases
+- Closing details
+- Transaction information
+
+---
+
+## Get Channels Geographical Data
+
+Retrieve geographical coordinates for channel connections.
+
+```bash
+GET /api/v1/lightning/channels-geo
+GET /api/v1/lightning/channels-geo/:publicKey
+```
+
+<ParamField path="publicKey" type="string">
+  Optional: Filter channels by a specific node's public key
+</ParamField>
+
+<ParamField query="style" type="string">
+  Optional: Response format
+  - `widget`: Minimal format with coordinates only
+  - Default: Full format with node details
+</ParamField>
+
+### Example Request
+
+```bash
+# Get all channels (top 10,000 by capacity)
+curl "https://mempool.space/api/v1/lightning/channels-geo"
+
+# Get channels for a specific node
+curl "https://mempool.space/api/v1/lightning/channels-geo/03864ef025fde8fb587d989186ce6a4a186895ee44a926bfc370e2c366597a3f8f"
+
+# Get minimal widget format
+curl "https://mempool.space/api/v1/lightning/channels-geo?style=widget"
+```
+
+### Response
+
+#### Default Format
+
+Returns an array where each element is an array containing:
+```
+[
+  node1_public_key,
+  node1_alias,
+  node1_longitude,
+  node1_latitude,
+  node2_public_key,
+  node2_alias,
+  node2_longitude,
+  node2_latitude
+]
+```
+
+#### Widget Format
+
+Returns an array where each element is an array containing:
+```
+[
+  node1_longitude,
+  node1_latitude,
+  node2_longitude,
+  node2_latitude
+]
+```
+
+---
+
+## Rate Limits
+
+All Lightning API endpoints are subject to standard rate limiting. Heavy usage should implement caching with respect to the `Expires` headers returned by the API.
+
+## Notes
+
+- Channel IDs can be provided in either short format (e.g., `800000x2048x0`) or full numeric format
+- All capacity values are in satoshis
+- Fee rates are in parts per million (ppm)
+- Base fees are in millisatoshis (mtokens)
+- Timestamps are Unix timestamps (seconds since epoch) unless otherwise specified
+- Geographic data is only available for nodes on clearnet with known locations

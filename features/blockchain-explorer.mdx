@@ -1,0 +1,414 @@
+---
+title: 'Blockchain Explorer'
+description: 'Explore Bitcoin blocks, transactions, and addresses with detailed analytics and real-time updates'
+icon: 'magnifying-glass'
+---
+
+## Overview
+
+The Blockchain Explorer lets you search and analyze Bitcoin's complete transaction history. Look up any block, transaction, or address to see detailed information, transaction flows, and historical data.
+
+<img src="/images/blockchain-explorer.png" alt="Bitcoin blockchain explorer interface" />
+
+## What You Can Explore
+
+<CardGroup cols={3}>
+  <Card title="Blocks" icon="cube">
+    View block details including size, weight, fees, and all contained transactions.
+  </Card>
+  
+  <Card title="Transactions" icon="arrow-right-arrow-left">
+    Analyze transaction inputs, outputs, fees, and confirmation status.
+  </Card>
+  
+  <Card title="Addresses" icon="wallet">
+    Track address balances, transaction history, and UTXO sets.
+  </Card>
+</CardGroup>
+
+## Search Functionality
+
+### Universal Search Bar
+
+The search bar at the top of every page accepts:
+
+- **Transaction ID (txid)**: 64-character hex string
+- **Block height**: Number (e.g., 800000)
+- **Block hash**: 64-character hex string
+- **Bitcoin address**: Any valid address format
+- **Lightning node public key**: 66-character hex string (if Lightning explorer enabled)
+
+<Tip>
+  Just start typing - the search automatically detects what you're looking for and shows suggestions.
+</Tip>
+
+## Block Explorer
+
+### Block Information
+
+When viewing a block, you'll see:
+
+<Tabs>
+  <Tab title="Overview">
+    **Block Header Data**
+    
+    - **Height**: Block number in the chain
+    - **Timestamp**: When the block was mined
+    - **Miner**: Pool or entity that mined the block
+    - **Size & Weight**: Block space usage
+    - **Transaction Count**: Number of transactions
+    - **Total Fees**: Sum of all transaction fees
+    - **Block Reward**: Subsidy + fees earned by miner
+    - **Difficulty**: Mining difficulty at this height
+  </Tab>
+  
+  <Tab title="Transaction List">
+    **All Transactions**
+    
+    Browse all transactions in the block:
+    - Coinbase transaction (first)
+    - Regular transactions (fee-rate sorted)
+    - SegWit adoption percentage
+    - Fee statistics
+    
+    Click any transaction to view full details.
+  </Tab>
+  
+  <Tab title="Visualization">
+    **Block Visualization**
+    
+    Interactive block overview showing:
+    - Transaction positions in the block
+    - Fee rates (color-coded)
+    - Transaction relationships
+    - SegWit vs. legacy transactions
+  </Tab>
+  
+  <Tab title="Audit">
+    **Block Audit**
+    
+    Compare actual vs. projected block contents:
+    - Template matching percentage
+    - Missing transactions
+    - Extra transactions
+    - Out-of-band transactions
+  </Tab>
+</Tabs>
+
+### Recent Blocks View
+
+The homepage displays recent blocks as a scrolling timeline:
+
+<img src="/images/blockchain-blocks.png" alt="Recent blocks timeline" />
+
+Each block shows:
+- **Height indicator**: Block number
+- **Pool logo**: Which mining pool found it
+- **Fullness meter**: How full the block is (weight/space used)
+- **Fee rate**: Median or range of fees
+- **Size indicator**: Visual representation of block size
+
+<Info>
+  The color gradient shows block fullness - darker colors indicate fuller blocks.
+</Info>
+
+## Transaction Explorer
+
+### Transaction Details
+
+View comprehensive transaction information:
+
+<Steps>
+  <Step title="Search for Transaction">
+    Enter the transaction ID (txid) in the search bar.
+  </Step>
+  
+  <Step title="View Overview">
+    See status, confirmations, fee rate, size, and weight.
+  </Step>
+  
+  <Step title="Analyze Inputs & Outputs">
+    Explore where funds came from and where they're going.
+  </Step>
+  
+  <Step title="Check Status">
+    Monitor confirmation status or mempool position if unconfirmed.
+  </Step>
+</Steps>
+
+### Transaction Components
+
+<Tabs>
+  <Tab title="Inputs">
+    **Transaction Inputs**
+    
+    Each input shows:
+    - Previous transaction (txid)
+    - Output index being spent
+    - Script signature
+    - Sequence number
+    - Amount being spent
+    
+    Inputs reference outputs from previous transactions (UTXOs).
+  </Tab>
+  
+  <Tab title="Outputs">
+    **Transaction Outputs**
+    
+    Each output displays:
+    - Destination address
+    - Amount sent
+    - Script pubkey
+    - Output type (P2PKH, P2WPKH, P2SH, etc.)
+    - Spent status
+    
+    Outputs create new UTXOs that can be spent in future transactions.
+  </Tab>
+  
+  <Tab title="Details">
+    **Transaction Metadata**
+    
+    - **Status**: Confirmed or unconfirmed
+    - **Confirmations**: Number of blocks since confirmation
+    - **Fee**: Total fee paid (sats)
+    - **Fee rate**: Fee per virtual byte (sat/vB)
+    - **Size**: Transaction size in bytes
+    - **Virtual size**: Size adjusted for SegWit discount
+    - **Weight**: Block weight units used
+    - **Version**: Transaction version number
+    - **Locktime**: Time or block when transaction becomes valid
+  </Tab>
+  
+  <Tab title="Advanced">
+    **Advanced Information**
+    
+    - **RBF Status**: Replace-by-fee enabled/disabled
+    - **SegWit Usage**: Native SegWit, nested SegWit, or legacy
+    - **Taproot Features**: Taproot inputs/outputs
+    - **CPFP Eligibility**: Child-pays-for-parent capable
+    - **Effective Fee Rate**: Including ancestor fees
+  </Tab>
+</Tabs>
+
+### Transaction Flow Visualization
+
+The transaction graph shows:
+
+<CardGroup cols={2}>
+  <Card title="Flow Diagram" icon="diagram-project">
+    Visual representation of funds flowing from inputs to outputs with amounts.
+  </Card>
+  
+  <Card title="Bowtie Graph" icon="circle-nodes">
+    Interactive graph showing transaction relationships and dependencies.
+  </Card>
+</CardGroup>
+
+## Address Explorer
+
+### Address Overview
+
+When you look up an address, you'll see:
+
+- **Current Balance**: Total unspent funds
+- **Total Received**: All-time received amount
+- **Total Sent**: All-time sent amount
+- **Transaction Count**: Number of transactions
+- **First/Last Seen**: First and most recent activity
+
+### Transaction History
+
+Browse paginated transaction history for any address:
+
+<Tabs>
+  <Tab title="Chronological">
+    Transactions listed from newest to oldest, showing:
+    - Transaction date/time
+    - Amount received/sent
+    - Balance after transaction
+    - Confirmation status
+  </Tab>
+  
+  <Tab title="Filtered">
+    Filter transactions by:
+    - Date range
+    - Amount threshold
+    - Confirmed vs. unconfirmed
+    - Sent vs. received
+  </Tab>
+</Tabs>
+
+### UTXO Set
+
+View unspent transaction outputs (UTXOs) for an address:
+
+```
+Each UTXO shows:
+- Transaction ID and output index
+- Amount (in BTC and sats)
+- Number of confirmations
+- Address type
+```
+
+<Warning>
+  Never share your Bitcoin addresses publicly if you value privacy. Address reuse significantly reduces privacy for both sender and receiver.
+</Warning>
+
+## Special Features
+
+### Address Labels
+
+Recognized entities and services are automatically labeled:
+
+- **Exchanges**: Binance, Coinbase, Kraken, etc.
+- **Mining Pools**: Pool payout addresses
+- **Services**: Payment processors, wallets
+- **Notable Addresses**: Satoshi's addresses, known entities
+
+### Script Analysis
+
+Understand different Bitcoin script types:
+
+- **P2PKH**: Legacy pay-to-pubkey-hash
+- **P2SH**: Pay-to-script-hash (multisig, etc.)
+- **P2WPKH**: Native SegWit
+- **P2WSH**: Native SegWit script
+- **P2TR**: Taproot addresses
+
+<Info>
+  Different address types have different fee characteristics - SegWit and Taproot transactions are cheaper.
+</Info>
+
+## Real-Time Updates
+
+### Live Block Stream
+
+Watch new blocks arrive in real-time:
+
+- Audio notification when new blocks are found
+- Smooth animation of blocks sliding into view
+- Instant update of mempool when block arrives
+- Special indicators for notable blocks
+
+### Mempool Position Tracking
+
+For unconfirmed transactions:
+
+- Live position in mempool queue
+- Estimated confirmation time
+- Number of transactions ahead
+- Visual indicator on mempool blocks
+
+## Advanced Analytics
+
+### Block Statistics
+
+<CardGroup cols={2}>
+  <Card title="Fee Distribution" icon="chart-pie">
+    See how fees are distributed across the block with percentile charts.
+  </Card>
+  
+  <Card title="Transaction Types" icon="shapes">
+    Breakdown of SegWit adoption, Taproot usage, and transaction patterns.
+  </Card>
+  
+  <Card title="Time Analysis" icon="clock">
+    Block times, difficulty adjustments, and mining trends.
+  </Card>
+  
+  <Card title="Size Metrics" icon="ruler">
+    Block size, weight usage, and efficiency statistics.
+  </Card>
+</CardGroup>
+
+### Historical Data
+
+Access historical blockchain metrics:
+
+- Block size and weight trends
+- Fee market evolution
+- SegWit and Taproot adoption rates
+- Mining difficulty progression
+- Hash rate estimates
+
+## API Access
+
+Query blockchain data programmatically:
+
+<CodeGroup>
+```bash GET /api/block/:hash
+curl "https://mempool.space/api/block/000000000000000000076c036ff5119e5a5a74df77abf64203473364509f7732"
+```
+
+```bash GET /api/tx/:txid
+curl "https://mempool.space/api/tx/15e10745f15593a899cef391191bdd3d7c12412cc4696b7bcb669d0feadc8521"
+```
+
+```bash GET /api/address/:address
+curl "https://mempool.space/api/address/1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+```
+
+```bash GET /api/blocks/tip/height
+curl "https://mempool.space/api/blocks/tip/height"
+```
+</CodeGroup>
+
+## Privacy Considerations
+
+<Warning>
+  **Bitcoin is Pseudonymous, Not Anonymous**
+  
+  All transactions are permanently recorded on the blockchain. Address reuse and transaction patterns can be analyzed to link transactions together.
+</Warning>
+
+### Best Practices
+
+<Check>Use a new address for each transaction</Check>
+<Check>Consider using CoinJoin for privacy</Check>
+<Check>Avoid linking addresses through transaction patterns</Check>
+<Check>Use Tor or VPN when looking up your own transactions</Check>
+<Check>Be aware that exchanges can track your activity</Check>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Transaction not found">
+    - Check that you copied the full txid correctly
+    - Transaction may not have been broadcast yet
+    - Some transactions may be filtered (dust, non-standard)
+    - Try searching on multiple block explorers
+  </Accordion>
+  
+  <Accordion title="Address shows wrong balance">
+    - Ensure you're using the correct address format
+    - Check if there are pending unconfirmed transactions
+    - Some wallets use multiple addresses (check all)
+    - Refresh the page to get latest data
+  </Accordion>
+  
+  <Accordion title="Block times seem wrong">
+    - Times are based on miner timestamp (can vary)
+    - Check your local timezone settings
+    - Blocks can be found faster or slower than 10 minutes
+  </Accordion>
+</AccordionGroup>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Mempool Visualizer" icon="chart-area" href="/features/mempool-visualizer">
+    Monitor unconfirmed transactions and fee rates
+  </Card>
+  
+  <Card title="Mining Dashboard" icon="hammer" href="/features/mining-dashboard">
+    Track mining pools and network hash rate
+  </Card>
+  
+  <Card title="Lightning Explorer" icon="bolt" href="/features/lightning-explorer">
+    Explore Lightning Network nodes and channels
+  </Card>
+  
+  <Card title="Fee Estimation" icon="coins" href="/features/fee-estimation">
+    Get smart fee recommendations
+  </Card>
+</CardGroup>

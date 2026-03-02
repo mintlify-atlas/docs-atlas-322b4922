@@ -1,0 +1,856 @@
+---
+title: 'Production Deployment'
+description: 'Enterprise-grade Mempool deployment for high performance and scale'
+icon: 'server'
+---
+
+<Warning>
+  This guide is for deploying a serious, high-performance production Mempool instance. It requires advanced system administration skills and powerful hardware. Home users should use [one-click installation](/installation/one-click) instead.
+</Warning>
+
+## Overview
+
+This guide covers deploying a production Mempool instance similar to [mempool.space](https://mempool.space), supporting Bitcoin (mainnet, testnet, signet) and Liquid (mainnet, testnet). The mempool.space production site runs on FreeBSD with ZFS, but Linux works well too.
+
+<Info>
+  Professional support for production instances is available exclusively to project sponsors through [Mempool Enterprise®](https://mempool.space/enterprise). The Mempool team can also host a high-performance instance for you on their global infrastructure.
+</Info>
+
+## Hardware Requirements
+
+Mempool v3 is powered by [mempool/electrs](https://github.com/mempool/electrs), which requires substantial resources.
+
+### Recommended Specifications
+
+<CardGroup cols={2}>
+  <Card title="CPU" icon="microchip">
+    **20+ cores**
+    
+    More cores = better performance
+  </Card>
+  <Card title="Memory" icon="memory">
+    **64GB+ RAM**
+    
+    More RAM for ZFS ARC cache
+  </Card>
+  <Card title="Storage" icon="hard-drive">
+    **4TB NVMe SSD**
+    
+    NVMe is significantly faster than SATA SSD
+  </Card>
+  <Card title="Network" icon="network-wired">
+    **1Gbps+ bandwidth**
+    
+    For serving API requests
+  </Card>
+</CardGroup>
+
+<Warning>
+  **Do not use HDDs.** SSDs are the minimum, but NVMe drives are strongly recommended for production performance.
+</Warning>
+
+## Operating System
+
+The official mempool.space site runs on **FreeBSD 13** with ZFS for maximum performance and reliability.
+
+<Tabs>
+  <Tab title="FreeBSD 13 (Recommended)">
+    ### Why FreeBSD?
+    
+    - Native ZFS support with superior performance
+    - Advanced networking stack
+    - Rock-solid stability
+    - Efficient resource management
+    
+    ### Installation
+    
+    1. Download FreeBSD 13 from [freebsd.org](https://www.freebsd.org/)
+    2. Install with ZFS root filesystem
+    3. Configure ZFS for optimal performance (see filesystem section below)
+  </Tab>
+  
+  <Tab title="Linux">
+    ### Supported Distributions
+    
+    - Ubuntu 22.04 LTS or later
+    - Debian 12 or later
+    - CentOS Stream 9
+    - Rocky Linux 9
+    
+    ### Recommended Filesystem
+    
+    - **ZFS on Linux** (OpenZFS) for advanced features
+    - **ext4** or **XFS** for simpler setup
+    - **Btrfs** is also supported
+    
+    <Note>
+      While Linux works well, FreeBSD + ZFS provides the best performance for high-traffic production deployments.
+    </Note>
+  </Tab>
+</Tabs>
+
+## Filesystem Configuration
+
+### ZFS Setup (FreeBSD)
+
+For maximum performance, use **2x 2TB NVMe SSDs in RAID 0** with ZFS:
+
+```bash ZFS Pool Creation
+zpool create -f -o ashift=12 nvm mirror nvd0 nvd1
+zpool list -v
+```
+
+Expected output:
+```
+NAME        SIZE  ALLOC   FREE  CKPOINT  EXPANDSZ   FRAG    CAP  DEDUP    HEALTH
+nvm        3.62T  1.25T  2.38T        -         -     2%    34%  1.00x    ONLINE
+  nvd0p3   1.81T   629G  1.20T        -         -     2%  33.9%      -  ONLINE
+  nvd1p3   1.81T   646G  1.18T        -         -     2%  34.8%      -  ONLINE
+```
+
+### Partition Layout
+
+Create separate ZFS datasets for flexibility and performance:
+
+<CodeGroup>
+```bash Bitcoin Core Datasets
+zfs create nvm/bitcoin
+zfs create nvm/bitcoin/blocks
+zfs create nvm/bitcoin/chainstate
+zfs create nvm/bitcoin/electrs
+zfs create nvm/bitcoin/indexes
+zfs create nvm/bitcoin/testnet3
+zfs create nvm/bitcoin/testnet3/blocks
+zfs create nvm/bitcoin/testnet3/chainstate
+zfs create nvm/bitcoin/testnet3/indexes
+```
+
+```bash Electrs Datasets
+zfs create nvm/electrs
+zfs create nvm/electrs/mainnet
+zfs create nvm/electrs/mainnet/cache
+zfs create nvm/electrs/mainnet/history
+zfs create nvm/electrs/mainnet/txstore
+zfs create nvm/electrs/testnet
+zfs create nvm/electrs/testnet/cache
+zfs create nvm/electrs/testnet/history
+zfs create nvm/electrs/testnet/txstore
+zfs create nvm/electrs/signet
+```
+
+```bash Elements/Liquid Datasets
+zfs create nvm/elements
+zfs create nvm/elements/electrs
+zfs create nvm/elements/liquidv1
+zfs create nvm/electrs/liquid
+zfs create nvm/electrs/liquid/cache
+zfs create nvm/electrs/liquid/history
+zfs create nvm/electrs/liquid/txstore
+```
+
+```bash Mempool & Database
+zfs create nvm/mempool
+zfs create nvm/mysql
+```
+</CodeGroup>
+
+<Info>
+  This partition structure allows independent snapshots, quotas, and compression settings per dataset.
+</Info>
+
+## Software Dependencies
+
+### FreeBSD Packages
+
+```bash
+pkg install -y zsh sudo git screen curl wget neovim rsync nginx openssl \
+  openssh-portable py38-pip py38-certbot-nginx boost-libs autoconf automake \
+  gmake gcc libevent libtool pkgconf mariadb105-server mariadb105-client tor
+```
+
+### Node.js & npm
+
+Build Node.js v24.13.0 from source using `nvm`:
+
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | zsh
+source $HOME/.zshrc
+nvm install v24.13.0 --shared-zlib
+nvm alias default node
+```
+
+### Rust
+
+Install Rust for building electrs:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source $HOME/.cargo/env
+```
+
+## Bitcoin Core Configuration
+
+Build from source or install via package manager:
+
+<CodeGroup>
+```bash FreeBSD Package
+pkg install -y bitcoin-daemon bitcoin-utils
+```
+
+```bash Build from Source
+git clone https://github.com/bitcoin/bitcoin
+cd bitcoin
+./autogen.sh
+./configure --without-gui --without-miniupnpc
+make -j$(nproc)
+make install
+```
+</CodeGroup>
+
+### bitcoin.conf
+
+Production configuration for high performance:
+
+```ini /bitcoin/bitcoin.conf
+datadir=/bitcoin
+server=1
+txindex=1
+listen=1
+discover=1
+par=16
+dbcache=4096
+maxmempool=1337
+mempoolexpiry=999999
+maxconnections=42
+
+# Tor support
+onion=127.0.0.1:9050
+
+# RPC
+rpcallowip=127.0.0.1
+rpcuser=foo
+rpcpassword=bar
+
+# Mainnet
+[main]
+bind=127.0.0.1:8333
+rpcbind=127.0.0.1:8332
+whitelist=bloomfilter@127.0.0.1
+
+# Testnet
+[test]
+daemon=1
+bind=127.0.0.1:18333
+rpcbind=127.0.0.1:18332
+
+# Signet
+[signet]
+daemon=1
+bind=127.0.0.1:38333
+rpcbind=127.0.0.1:38332
+```
+
+<Warning>
+  Change `rpcuser` and `rpcpassword` to secure values!
+</Warning>
+
+## Elements Core (Liquid)
+
+Build Elements Core from source:
+
+```bash
+git clone https://github.com/ElementsProject/elements
+cd elements
+./autogen.sh
+MAKE=gmake CC=cc CXX=c++ CPPFLAGS=-I/usr/local/include \
+  ./configure --with-gui=no --disable-wallet
+gmake -j19
+gmake install
+```
+
+### elements.conf
+
+```ini /elements/elements.conf
+server=1
+daemon=1
+listen=1
+rpcuser=foo
+rpcpassword=bar
+mainchainrpchost=127.0.0.1
+mainchainrpcuser=foo
+mainchainrpcpassword=bar
+txindex=1
+
+[liquidv1]
+validatepegin=1
+mainchainrpcport=8332
+
+[liquidtestnet]
+validatepegin=0
+anyonecanspendaremine=0
+initialfreecoins=2100000000000000
+con_dyna_deploy_start=0
+con_max_block_sig_size=150
+checkblockindex=0
+fallbackfee=0.00000100
+con_has_parent_chain=0
+parentgenesisblockhash=NULL
+pubkeyprefix=36
+scriptprefix=19
+blindedprefix=23
+bech32_hrp=tex
+blech32_hrp=tlq
+pchmessagestart=410edd62
+dynamic_epoch_length=1000
+signblockscript=51210217e403ddb181872c32a0cd468c710040b2f53d8cac69f18dad07985ee37e9a7151ae
+evbparams=dynafed:0:::
+addnode=liquid-testnet.blockstream.com:18892
+addnode=liquidtestnet.com:18891
+addnode=liquid.network:18444
+```
+
+## Electrs (Mempool Fork)
+
+Install mempool's fork of electrs for optimal performance:
+
+```bash
+git clone https://github.com/mempool/electrs
+cd electrs
+git checkout mempool
+cargo build --release --bin electrs
+```
+
+### Run Multiple Instances
+
+You need one electrs instance per network:
+
+<CodeGroup>
+```bash Mainnet
+./electrs-start-mainnet
+```
+
+```bash Testnet
+./electrs-start-testnet
+```
+
+```bash Signet
+./electrs-start-signet
+```
+
+```bash Liquid
+./electrs-start-liquid
+```
+
+```bash Liquid Testnet
+./electrs-start-liquidtestnet
+```
+</CodeGroup>
+
+<Info>
+  Initial indexing can take several days depending on hardware. Ensure each instance completes indexing before starting Mempool.
+</Info>
+
+## Tor Configuration
+
+For onion service support:
+
+```bash
+pkg install -y tor
+pw user mod bitcoin -G _tor
+```
+
+### /usr/local/etc/tor/torrc
+
+```ini torrc
+RunAsDaemon 1
+SOCKSPort 9050
+ControlPort 9051
+Log notice syslog
+
+CookieAuthentication 1
+CookieAuthFileGroupReadable 1
+CookieAuthFile /var/db/tor/control_auth_cookie
+DataDirectory /var/db/tor
+DataDirectoryGroupReadable 1
+
+# Mempool onion service
+HiddenServiceDir /var/db/tor/mempool
+HiddenServicePort 80 127.0.0.1:81
+HiddenServiceVersion 3
+
+# Liquid onion service
+HiddenServiceDir /var/db/tor/liquid
+HiddenServicePort 80 127.0.0.1:83
+HiddenServiceVersion 3
+```
+
+Start Tor:
+```bash
+service tor start
+```
+
+## MariaDB Setup
+
+Initialize databases for each network:
+
+```sql
+mysql -u root
+
+CREATE DATABASE mempool;
+GRANT ALL ON mempool.* TO 'mempool'@'localhost' IDENTIFIED BY 'mempool';
+
+CREATE DATABASE mempool_testnet;
+GRANT ALL ON mempool_testnet.* TO 'mempool_testnet'@'localhost' 
+  IDENTIFIED BY 'mempool_testnet';
+
+CREATE DATABASE mempool_signet;
+GRANT ALL ON mempool_signet.* TO 'mempool_signet'@'localhost' 
+  IDENTIFIED BY 'mempool_signet';
+
+CREATE DATABASE mempool_liquid;
+GRANT ALL ON mempool_liquid.* TO 'mempool_liquid'@'localhost' 
+  IDENTIFIED BY 'mempool_liquid';
+
+CREATE DATABASE mempool_liquidtestnet;
+GRANT ALL ON mempool_liquidtestnet.* TO 'mempool_liquidtestnet'@'localhost' 
+  IDENTIFIED BY 'mempool_liquidtestnet';
+
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+<Warning>
+  Use strong passwords for production databases!
+</Warning>
+
+## Mempool Installation
+
+After all electrs instances are indexed:
+
+### Clone and Build
+
+```bash
+cd /mempool
+git clone https://github.com/mempool/mempool
+cd mempool
+git checkout latest-release-tag
+```
+
+### Configuration
+
+The `production/` directory contains sample configs for each network:
+
+<CodeGroup>
+```json mempool-config.mainnet.json
+{
+  "MEMPOOL": {
+    "NETWORK": "mainnet",
+    "BACKEND": "esplora",
+    "HTTP_PORT": 8999,
+    "INDEXING_BLOCKS_AMOUNT": 11000,
+    "BLOCKS_SUMMARIES_INDEXING": true,
+    "CPFP_INDEXING": true,
+    "AUTOMATIC_POOLS_UPDATE": true
+  },
+  "CORE_RPC": {
+    "HOST": "127.0.0.1",
+    "PORT": 8332,
+    "USERNAME": "foo",
+    "PASSWORD": "bar"
+  },
+  "ESPLORA": {
+    "UNIX_SOCKET_PATH": "/tmp/esplora-bitcoin-mainnet"
+  },
+  "DATABASE": {
+    "ENABLED": true,
+    "HOST": "127.0.0.1",
+    "PORT": 3306,
+    "DATABASE": "mempool",
+    "USERNAME": "mempool",
+    "PASSWORD": "mempool"
+  },
+  "STATISTICS": {
+    "ENABLED": true
+  }
+}
+```
+
+```json mempool-config.liquid.json
+{
+  "MEMPOOL": {
+    "NETWORK": "liquid",
+    "BACKEND": "esplora",
+    "HTTP_PORT": 8999,
+    "INDEXING_BLOCKS_AMOUNT": 11000
+  },
+  "CORE_RPC": {
+    "HOST": "127.0.0.1",
+    "PORT": 7041,
+    "USERNAME": "foo",
+    "PASSWORD": "bar"
+  },
+  "ESPLORA": {
+    "UNIX_SOCKET_PATH": "/tmp/esplora-liquid"
+  },
+  "DATABASE": {
+    "ENABLED": true,
+    "HOST": "127.0.0.1",
+    "DATABASE": "mempool_liquid",
+    "USERNAME": "mempool_liquid",
+    "PASSWORD": "mempool_liquid"
+  }
+}
+```
+</CodeGroup>
+
+### Install All Networks
+
+```bash
+./mempool-install-all
+./mempool-upgrade-all
+```
+
+### Start All Backends
+
+```bash
+./mempool-start-all
+```
+
+This starts backend instances for:
+- Bitcoin mainnet (port 8999)
+- Bitcoin testnet (port 18999)
+- Bitcoin signet (port 38999)
+- Liquid mainnet (port 9999)
+- Liquid testnet (port 19999)
+
+## Nginx Configuration
+
+### SSL Certificate
+
+Get SSL certificate with certbot:
+
+```bash
+certbot --nginx -d mempool.yourdomain.com
+```
+
+### Configure Nginx
+
+Symlink Mempool nginx configs:
+
+```bash
+cd /usr/local/etc/nginx
+ln -s /mempool/mempool
+cp /mempool/mempool/nginx.conf .
+vi nginx.conf
+```
+
+Sample production nginx.conf is in the repository at `production/nginx/`.
+
+### Key Configuration Sections
+
+<AccordionGroup>
+  <Accordion title="Rate Limiting">
+    ```nginx
+    # Rate limit zones
+    limit_req_zone $limited_ip_key zone=api:5m rate=200r/m;
+    limit_req_zone $limited_ip_key zone=electrs:5m rate=2000r/m;
+    limit_req_status 429;
+    
+    # Connection limits
+    limit_conn_zone $limited_ip_key zone=websocket:10m;
+    limit_conn_status 429;
+    ```
+  </Accordion>
+
+  <Accordion title="Caching">
+    ```nginx
+    # Proxy cache
+    proxy_cache_path /var/cache/nginx keys_zone=cache:20m 
+      levels=1:2 inactive=600s max_size=500m;
+    ```
+  </Accordion>
+
+  <Accordion title="Compression">
+    ```nginx
+    gzip on;
+    gzip_vary on;
+    gzip_comp_level 6;
+    gzip_min_length 1000;
+    gzip_types application/javascript application/json 
+      application/x-font-ttf application/xml text/css text/plain;
+    ```
+  </Accordion>
+
+  <Accordion title="Performance Tuning">
+    ```nginx
+    worker_processes auto;
+    worker_rlimit_nofile 100000;
+    worker_connections 9000;
+    
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 69s;
+    keepalive_requests 1337;
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Restart Nginx
+
+```bash
+service nginx restart
+```
+
+## Process Management
+
+### systemd Services (Linux)
+
+Create service files for each network:
+
+```ini /etc/systemd/system/mempool-mainnet.service
+[Unit]
+Description=Mempool Backend (Mainnet)
+After=network.target mariadb.service
+
+[Service]
+Type=simple
+User=mempool
+WorkingDirectory=/mempool/mainnet/backend
+Environment="MEMPOOL_CONFIG_FILE=/mempool/mainnet/mempool-config.json"
+ExecStart=/usr/bin/npm run start
+Restart=on-failure
+RestartSec=10
+StandardOutput=append:/var/log/mempool/mainnet.log
+StandardError=append:/var/log/mempool/mainnet-error.log
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable all services:
+```bash
+systemctl enable mempool-mainnet
+systemctl enable mempool-testnet
+systemctl enable mempool-signet
+systemctl enable mempool-liquid
+systemctl enable mempool-liquidtestnet
+systemctl start mempool-mainnet
+```
+
+### rc Scripts (FreeBSD)
+
+See `production/freebsd/` directory for rc.d scripts.
+
+## Monitoring
+
+### Health Checks
+
+<CodeGroup>
+```bash Backend Status
+curl http://localhost:8999/api/v1/backend-info
+```
+
+```bash Database Status
+mysqladmin -u mempool -pmempool ping
+```
+
+```bash Electrs Status
+curl http://localhost:3000/blocks/tip/height
+```
+
+```bash Nginx Status
+curl -I http://localhost/
+```
+</CodeGroup>
+
+### Log Monitoring
+
+```bash
+# Backend logs
+tail -f /var/log/mempool/mainnet.log
+
+# Nginx access logs
+tail -f /var/log/nginx/access.log
+
+# Database logs
+tail -f /var/log/mysql/error.log
+```
+
+## Maintenance
+
+### Update Mempool
+
+```bash
+cd /mempool/mempool
+git fetch
+git checkout <new-version-tag>
+./mempool-upgrade-all
+./mempool-start-all
+```
+
+### Update Mining Pools
+
+```bash
+./mempool-update-pools
+```
+
+### Database Backups
+
+```bash
+# Backup all databases
+mysqldump -u root --all-databases | gzip > mempool-backup-$(date +%Y%m%d).sql.gz
+
+# Restore
+gunzip < mempool-backup-20260302.sql.gz | mysql -u root
+```
+
+### ZFS Snapshots
+
+```bash
+# Create snapshot
+zfs snapshot -r nvm/mempool@backup-$(date +%Y%m%d)
+
+# List snapshots
+zfs list -t snapshot
+
+# Restore snapshot
+zfs rollback nvm/mempool@backup-20260302
+```
+
+## Performance Optimization
+
+<AccordionGroup>
+  <Accordion title="Database Tuning">
+    ```ini /etc/my.cnf
+    [mysqld]
+    innodb_buffer_pool_size = 16G
+    innodb_log_file_size = 512M
+    innodb_flush_log_at_trx_commit = 2
+    innodb_flush_method = O_DIRECT
+    max_connections = 500
+    ```
+  </Accordion>
+
+  <Accordion title="System Tuning">
+    ```ini /etc/sysctl.conf
+    # Network
+    net.core.somaxconn=1024
+    net.ipv4.tcp_max_syn_backlog=2048
+    
+    # File descriptors
+    fs.file-max=100000
+    
+    # Memory
+    vm.swappiness=10
+    ```
+  </Accordion>
+
+  <Accordion title="ZFS Tuning">
+    ```bash
+    # ARC cache size (bytes)
+    sysctl vfs.zfs.arc_max=34359738368  # 32GB
+    
+    # Compression
+    zfs set compression=lz4 nvm
+    
+    # Record size for databases
+    zfs set recordsize=16K nvm/mysql
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Security Hardening
+
+<Steps>
+  <Step title="Firewall">
+    Only expose necessary ports:
+    ```bash
+    # Allow HTTP/HTTPS
+    ufw allow 80/tcp
+    ufw allow 443/tcp
+    
+    # Deny everything else
+    ufw enable
+    ```
+  </Step>
+
+  <Step title="Fail2ban">
+    Protect against brute force:
+    ```bash
+    apt-get install fail2ban
+    systemctl enable fail2ban
+    ```
+  </Step>
+
+  <Step title="Secure Credentials">
+    - Use strong passwords for all services
+    - Store credentials in environment variables
+    - Restrict file permissions: `chmod 600 mempool-config.json`
+  </Step>
+
+  <Step title="Updates">
+    Keep system packages up to date:
+    ```bash
+    # FreeBSD
+    freebsd-update fetch install
+    pkg update && pkg upgrade
+    
+    # Ubuntu/Debian
+    apt-get update && apt-get upgrade
+    ```
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="High CPU usage">
+    - Check electrs is fully synced
+    - Verify database indexes are created
+    - Monitor slow queries: `mysqldumpslow /var/log/mysql/slow.log`
+    - Increase `MEMPOOL_POLL_RATE_MS` to reduce polling frequency
+  </Accordion>
+
+  <Accordion title="Memory exhaustion">
+    - Increase system RAM
+    - Tune database buffer pool size
+    - Reduce ZFS ARC cache if needed
+    - Enable swap (with low swappiness)
+  </Accordion>
+
+  <Accordion title="Disk I/O bottleneck">
+    - Upgrade to faster NVMe drives
+    - Use ZFS compression
+    - Separate partitions for different services
+    - Monitor with: `iostat -x 1`
+  </Accordion>
+
+  <Accordion title="Network issues">
+    - Check nginx error logs
+    - Verify rate limiting isn't too aggressive
+    - Monitor connections: `netstat -an | grep ESTABLISHED | wc -l`
+    - Increase max connections if needed
+  </Accordion>
+</AccordionGroup>
+
+## Getting Help
+
+<CardGroup cols={2}>
+  <Card title="Mempool Enterprise" icon="building" href="https://mempool.space/enterprise">
+    Professional support and managed hosting
+  </Card>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/mempool/mempool/issues">
+    Report bugs and request features
+  </Card>
+  <Card title="Community Chat" icon="comments" href="https://mempool.space/community">
+    Chat with other operators
+  </Card>
+  <Card title="Documentation" icon="book" href="/">
+    Browse complete documentation
+  </Card>
+</CardGroup>
+
+<Info>
+  If everything is configured correctly, your production instance should perform similarly to [mempool.space](https://mempool.space/)
+</Info>

@@ -1,0 +1,264 @@
+---
+title: 'One-Click Installation'
+description: 'Deploy Mempool instantly on popular Bitcoin node distributions'
+icon: 'circle-play'
+---
+
+<Note>
+  One-click installation is the recommended method for most users. It provides a fully-sovereign Mempool instance without manual configuration.
+</Note>
+
+## Overview
+
+Mempool can be conveniently installed on popular Bitcoin full-node distributions with just a few clicks. These distributions bundle Bitcoin Core, an Electrum server, and provide an easy-to-use interface for managing your node.
+
+## Supported Platforms
+
+<CardGroup cols={2}>
+  <Card title="Umbrel" icon="umbrella" href="https://github.com/getumbrel/umbrel">
+    Modern Bitcoin and Lightning node for home use
+  </Card>
+  <Card title="RaspiBlitz" icon="raspberry-pi" href="https://github.com/rootzoll/raspiblitz">
+    DIY Bitcoin Lightning Node on a RaspberryPi
+  </Card>
+  <Card title="RoninDojo" icon="user-ninja" href="https://code.samourai.io/ronindojo/RoninDojo">
+    Privacy-focused Bitcoin full node
+  </Card>
+  <Card title="myNode" icon="cube" href="https://github.com/mynodebtc/mynode">
+    Easy-to-use Bitcoin and Lightning node
+  </Card>
+  <Card title="StartOS" icon="rocket" href="https://github.com/Start9Labs/start-os">
+    Self-hosted personal server OS
+  </Card>
+  <Card title="nix-bitcoin" icon="snowflake" href="https://github.com/fort-nix/nix-bitcoin">
+    Secure Bitcoin node using NixOS
+  </Card>
+</CardGroup>
+
+## Installation Steps
+
+<Tabs>
+  <Tab title="Umbrel">
+    <Steps>
+      <Step title="Open App Store">
+        Navigate to your Umbrel dashboard and open the App Store
+      </Step>
+      <Step title="Search for Mempool">
+        Find "Mempool" in the Bitcoin category or use the search function
+      </Step>
+      <Step title="Install">
+        Click the Install button and wait for the installation to complete
+      </Step>
+      <Step title="Access Mempool">
+        Once installed, Mempool will be accessible from your Umbrel apps dashboard
+      </Step>
+    </Steps>
+
+    <Info>
+      Umbrel automatically configures Mempool to connect to your Bitcoin Core and Electrum server instances.
+    </Info>
+  </Tab>
+
+  <Tab title="RaspiBlitz">
+    <Steps>
+      <Step title="SSH into your node">
+        Connect to your RaspiBlitz via SSH
+      </Step>
+      <Step title="Access the menu">
+        The RaspiBlitz menu should appear automatically. If not, run `raspiblitz`
+      </Step>
+      <Step title="Navigate to Services">
+        Select "SERVICES" from the main menu
+      </Step>
+      <Step title="Install Mempool">
+        Find and select "Mempool" from the services list and follow the prompts
+      </Step>
+    </Steps>
+
+    <Info>
+      RaspiBlitz will configure Mempool to work with your existing Bitcoin Core and Electrs setup.
+    </Info>
+  </Tab>
+
+  <Tab title="RoninDojo">
+    <Steps>
+      <Step title="Access RoninDojo UI">
+        Open your RoninDojo web interface or connect via SSH
+      </Step>
+      <Step title="Navigate to Applications">
+        Go to the Applications or Services section
+      </Step>
+      <Step title="Install Mempool">
+        Select Mempool from the available applications and click Install
+      </Step>
+      <Step title="Wait for sync">
+        Allow time for Mempool to sync with your Bitcoin node
+      </Step>
+    </Steps>
+
+    <Note>
+      RoninDojo is privacy-focused and will configure Mempool to work seamlessly with your Dojo backend.
+    </Note>
+  </Tab>
+
+  <Tab title="myNode">
+    <Steps>
+      <Step title="Open myNode Interface">
+        Navigate to your myNode web interface
+      </Step>
+      <Step title="Go to Manage">
+        Click on the "Manage" or "Applications" section
+      </Step>
+      <Step title="Enable Mempool">
+        Find Mempool in the list of applications and click "Enable" or "Install"
+      </Step>
+      <Step title="Access Mempool">
+        Once enabled, access Mempool from the myNode main dashboard
+      </Step>
+    </Steps>
+
+    <Info>
+      myNode Premium users get additional features and priority support.
+    </Info>
+  </Tab>
+
+  <Tab title="StartOS">
+    <Steps>
+      <Step title="Open Marketplace">
+        Navigate to the StartOS Marketplace from your dashboard
+      </Step>
+      <Step title="Search for Mempool">
+        Use the search function or browse the Bitcoin category
+      </Step>
+      <Step title="Install Service">
+        Click "Install" on the Mempool service
+      </Step>
+      <Step title="Configure Dependencies">
+        StartOS will automatically configure dependencies with Bitcoin Core
+      </Step>
+    </Steps>
+
+    <Info>
+      StartOS provides sandboxed services with automatic dependency management.
+    </Info>
+  </Tab>
+
+  <Tab title="nix-bitcoin">
+    <Steps>
+      <Step title="Edit configuration.nix">
+        Open your NixOS configuration file:
+        ```bash
+        sudo nano /etc/nixos/configuration.nix
+        ```
+      </Step>
+      <Step title="Enable Mempool service">
+        Add the following to your configuration:
+        ```nix
+        services.mempool = {
+          enable = true;
+          address = "0.0.0.0";
+          port = 60845;
+        };
+        ```
+      </Step>
+      <Step title="Rebuild system">
+        Apply the configuration:
+        ```bash
+        sudo nixos-rebuild switch
+        ```
+      </Step>
+      <Step title="Access Mempool">
+        Mempool will be available on the configured port after rebuild completes
+      </Step>
+    </Steps>
+
+    <Warning>
+      Ensure your firewall rules allow access to the configured port if accessing remotely.
+    </Warning>
+
+    For more details, see the [nix-bitcoin configuration example](https://github.com/fort-nix/nix-bitcoin/blob/a1eacce6768ca4894f365af8f79be5bbd594e1c3/examples/configuration.nix#L129).
+  </Tab>
+</Tabs>
+
+## What's Included
+
+All one-click installations automatically configure:
+
+<AccordionGroup>
+  <Accordion title="Bitcoin Core Connection">
+    Mempool connects to your existing Bitcoin Core node with proper RPC credentials.
+  </Accordion>
+  
+  <Accordion title="Electrum Server Integration">
+    Full address lookup functionality through your Electrum server (Electrs, Fulcrum, or Esplora).
+  </Accordion>
+  
+  <Accordion title="Database Setup">
+    MariaDB database for storing historical data and statistics.
+  </Accordion>
+  
+  <Accordion title="Web Interface">
+    Fully-featured web interface accessible through your node's dashboard or IP address.
+  </Accordion>
+</AccordionGroup>
+
+## Post-Installation
+
+After installation:
+
+1. **Initial Sync**: Mempool will begin syncing with your Bitcoin node. This may take some time depending on your node's sync status.
+
+2. **Access the Interface**: Navigate to Mempool through your node distribution's dashboard or directly via the configured port.
+
+3. **Monitor Performance**: Check that transactions appear in the mempool visualization and blocks are being tracked.
+
+<Tip>
+  Bookmark your local Mempool URL for quick access. Most installations run on port 80 or 8080.
+</Tip>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Mempool not loading">
+    - Verify Bitcoin Core is fully synced
+    - Check that the Electrum server is running and synced
+    - Restart the Mempool service through your node distribution's interface
+  </Accordion>
+  
+  <Accordion title="No transactions showing">
+    - Ensure Bitcoin Core has `txindex=1` enabled
+    - Verify network connectivity
+    - Check that mempool data is being received from Bitcoin Core
+  </Accordion>
+  
+  <Accordion title="Address lookups not working">
+    - Confirm your Electrum server is fully indexed
+    - Check Electrum server connectivity in Mempool configuration
+    - Verify the correct Electrum backend is specified (electrum/esplora)
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Explore the API" icon="code" href="/api/introduction">
+    Learn about Mempool's REST API
+  </Card>
+  <Card title="Advanced Configuration" icon="sliders" href="/configuration/backend-config">
+    Customize your Mempool instance
+  </Card>
+</CardGroup>
+
+## Getting Help
+
+<Info>
+  For issues specific to your node distribution, consult their support channels:
+  - Umbrel: [Community Forum](https://community.getumbrel.com/)
+  - RaspiBlitz: [GitHub Issues](https://github.com/rootzoll/raspiblitz/issues)
+  - RoninDojo: [Telegram](https://t.me/RoninDojoUI)
+  - myNode: [Support Site](https://mynodebtc.com/support)
+  - StartOS: [Community Chat](https://start9.com/community)
+  - nix-bitcoin: [GitHub Discussions](https://github.com/fort-nix/nix-bitcoin/discussions)
+</Info>
+
+For Mempool-specific questions, visit the [Mempool GitHub repository](https://github.com/mempool/mempool).

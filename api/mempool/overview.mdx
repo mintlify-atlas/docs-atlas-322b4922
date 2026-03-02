@@ -1,0 +1,68 @@
+---
+title: 'Mempool API Overview'
+description: 'Overview of Bitcoin mempool and fee estimation endpoints'
+---
+
+The Mempool API provides real-time access to Bitcoin's mempool data, including transaction fee recommendations, mempool block projections, and advanced features like Replace-by-Fee (RBF) and Child-Pays-for-Parent (CPFP) analysis.
+
+## Base URL
+
+All API endpoints are prefixed with `/api/v1/` by default. This prefix can be configured via the `MEMPOOL.API_URL_PREFIX` setting.
+
+## Key Features
+
+### Fee Estimation
+Get recommended fee rates for different confirmation priorities:
+- **Fastest Fee**: Likely to confirm in the next block
+- **Half Hour Fee**: Likely to confirm within 30 minutes
+- **Hour Fee**: Likely to confirm within 1 hour
+- **Economy Fee**: Lower priority, may take several hours
+- **Minimum Fee**: Minimum fee to stay in the mempool
+
+See [Fee Endpoints](/api/mempool/fees) for detailed documentation.
+
+### RBF (Replace-by-Fee)
+Track transaction replacements and full-RBF activity:
+- View replacement history for individual transactions
+- Monitor recent RBF and full-RBF replacements network-wide
+- Analyze fee bumps and replacement patterns
+
+See [RBF Endpoints](/api/mempool/rbf) for detailed documentation.
+
+### CPFP (Child-Pays-for-Parent)
+Analyze transaction dependencies and effective fee rates:
+- Calculate effective fee rates considering ancestors and descendants
+- Identify CPFP clusters
+- Determine transaction mining priority
+
+See [CPFP Endpoints](/api/mempool/cpfp) for detailed documentation.
+
+## Rate Limiting
+
+Rate limiting may be applied based on your deployment configuration. Public instances typically implement rate limits to ensure fair usage.
+
+## Service Availability
+
+Some endpoints may return HTTP 503 (Service Unavailable) when:
+- The mempool is not fully synchronized
+- Backend services are temporarily unavailable
+- Data is still being processed after startup
+
+## Response Formats
+
+All endpoints return JSON responses unless otherwise specified. Error responses include descriptive messages:
+
+```json
+{
+  "error": "Description of the error"
+}
+```
+
+## Common HTTP Status Codes
+
+- **200 OK**: Request successful
+- **204 No Content**: Request successful, but no data available
+- **400 Bad Request**: Invalid request parameters
+- **404 Not Found**: Resource not found
+- **501 Not Implemented**: Feature not available in current configuration
+- **503 Service Unavailable**: Service temporarily unavailable

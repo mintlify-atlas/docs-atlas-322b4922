@@ -1,0 +1,621 @@
+---
+title: 'Transaction Acceleration'
+description: 'Speed up stuck Bitcoin transactions using CPFP acceleration with instant confirmation'
+icon: 'rocket'
+---
+
+## Overview
+
+Transaction Acceleration helps you speed up stuck Bitcoin transactions by using CPFP (Child-Pays-For-Parent) to increase the effective fee rate, ensuring faster confirmation.
+
+<img src="/images/acceleration-dashboard.png" alt="Transaction acceleration interface" />
+
+## Why Transactions Get Stuck
+
+Your Bitcoin transaction might be stuck because:
+
+- **Fee too low**: Paid less than current market rate
+- **Mempool congestion**: Network activity increased after sending
+- **Transaction size**: Large transactions need higher total fees
+- **No RBF**: Transaction not marked for Replace-By-Fee
+
+<Info>
+  "Stuck" means your transaction is in the mempool but not confirming. It's not lost - just waiting for miners to include it in a block.
+</Info>
+
+## How Acceleration Works
+
+### Child-Pays-For-Parent (CPFP)
+
+CPFP is the most reliable way to accelerate transactions:
+
+<Steps>
+  <Step title="Create Child Transaction">
+    Spend an output from the unconfirmed (parent) transaction
+  </Step>
+  
+  <Step title="Pay Higher Fee">
+    Child transaction pays enough to cover both transactions
+  </Step>
+  
+  <Step title="Package Mining">
+    Miners include both transactions together to claim the combined fee
+  </Step>
+  
+  <Step title="Confirmation">
+    Both parent and child confirm in the same block
+  </Step>
+</Steps>
+
+<img src="/images/cpfp-diagram.png" alt="CPFP acceleration diagram" />
+
+### How Mempool Accelerator Works
+
+Mempool's acceleration service:
+
+1. **Analyzes your transaction**: Calculates effective fee rate including ancestors
+2. **Estimates acceleration cost**: Shows cost to reach target fee rate
+3. **Coordinates with mining pools**: Partners with major pools for priority
+4. **Guarantees inclusion**: Transaction confirmed in next available block from partner pools
+
+<CardGroup cols={2}>
+  <Card title="Fast" icon="gauge-high">
+    Typically confirms in 10-30 minutes
+  </Card>
+  
+  <Card title="Reliable" icon="shield-check">
+    Partnerships with major mining pools
+  </Card>
+  
+  <Card title="Fair Pricing" icon="hand-holding-dollar">
+    Pay only what's needed to accelerate
+  </Card>
+  
+  <Card title="Transparent" icon="eye">
+    See exactly what you're paying for
+  </Card>
+</CardGroup>
+
+## When to Use Acceleration
+
+### Good Use Cases
+
+<Check>Time-sensitive payment stuck for hours</Check>
+<Check>Transaction fee too low, can't use RBF</Check>
+<Check>Need confirmation urgently (exchange deposit, etc.)</Check>
+<Check>Recipient needs the funds quickly</Check>
+<Check>Transaction has been stuck for 24+ hours</Check>
+
+### When to Wait Instead
+
+<Warning>
+  Don't accelerate if:
+  - Transaction fee is already competitive
+  - Not urgent (will confirm eventually)
+  - Can use RBF (cheaper alternative)
+  - Mempool is clearing naturally
+</Warning>
+
+## Using the Accelerator
+
+### Step-by-Step Process
+
+<Steps>
+  <Step title="Find Your Transaction">
+    Search for your stuck transaction on mempool.space using the txid (transaction ID).
+    
+    <img src="/images/stuck-transaction.png" alt="Stuck transaction view" />
+  </Step>
+  
+  <Step title="Check Eligibility">
+    The accelerator button appears if:
+    - Transaction is unconfirmed
+    - Not already accelerated
+    - Has at least one output you can spend
+    - Acceleration would be effective
+  </Step>
+  
+  <Step title="Get Estimate">
+    Click "Accelerate" to see:
+    - Current effective fee rate
+    - Target fee rate for next block
+    - Acceleration cost in BTC and USD
+    - Estimated confirmation time
+    
+    <img src="/images/acceleration-quote.png" alt="Acceleration cost estimate" />
+  </Step>
+  
+  <Step title="Choose Payment Method">
+    Available options:
+    - **Bitcoin**: Pay with on-chain transaction
+    - **Lightning**: Instant payment, lower fees
+    - **Card/Cash App**: Fiat payment options
+    - **Account Balance**: If you have prepaid credit
+  </Step>
+  
+  <Step title="Confirm and Pay">
+    Review details and complete payment:
+    - Verify acceleration cost
+    - Choose payment method
+    - Complete transaction
+    - Receive confirmation
+  </Step>
+  
+  <Step title="Track Acceleration">
+    Monitor your accelerated transaction:
+    - See "accelerated" badge on transaction
+    - Track position in mempool
+    - Receive notification on confirmation
+    - View receipt and details
+  </Step>
+</Steps>
+
+## Understanding Acceleration Cost
+
+### Cost Breakdown
+
+Acceleration cost consists of:
+
+```
+Acceleration Cost = Base Fee + vSize Fee + Mining Priority
+```
+
+<Tabs>
+  <Tab title="Base Fee">
+    **Service Fee**
+    
+    Flat fee to process the acceleration:
+    - Covers operational costs
+    - Typically a few thousand sats
+    - Same regardless of transaction size
+  </Tab>
+  
+  <Tab title="vSize Fee">
+    **Transaction Size Fee**
+    
+    Based on your transaction's size:
+    - Larger transactions cost more
+    - Includes ancestor transactions
+    - Charged per virtual byte
+  </Tab>
+  
+  <Tab title="Priority Fee">
+    **Mining Pool Bid**
+    
+    The actual acceleration amount:
+    - Makes your transaction competitive
+    - Goes directly to miners
+    - Based on current mempool conditions
+    - Adjustable for urgency
+  </Tab>
+</Tabs>
+
+### Example Calculation
+
+```
+Transaction Details:
+- Original fee rate: 5 sat/vB
+- Transaction size: 250 vB
+- Original fee: 1,250 sats
+
+Current Mempool:
+- Next block fee rate: 25 sat/vB
+- Target total fee: 6,250 sats
+- Fee increase needed: 5,000 sats
+
+Acceleration Cost:
+- Base fee: 1,500 sats
+- vSize fee: 1,000 sats (4 sat/vB)
+- Priority bid: 5,000 sats
+- Total: 7,500 sats (~$3 at $40k/BTC)
+```
+
+<Info>
+  Acceleration is most cost-effective when mempool fees are moderately high. During extreme congestion, costs can be significant.
+</Info>
+
+## Payment Options
+
+### Bitcoin Payment
+
+**On-Chain Bitcoin Payment**
+
+- Pay with Bitcoin from any wallet
+- Generate BTCPay invoice
+- Scan QR code or copy address
+- Confirm payment
+
+<Tip>
+  Make sure your payment transaction has adequate fees or it will also need acceleration!
+</Tip>
+
+### Lightning Network
+
+**Instant Lightning Payment**
+
+- Lowest fees
+- Instant confirmation
+- Best for smaller amounts
+- Requires Lightning wallet
+
+<img src="/images/lightning-payment.png" alt="Lightning payment option" />
+
+### Card Payments
+
+**Credit/Debit Card (via Square)**
+
+- Apple Pay
+- Google Pay
+- Credit/debit cards
+- Cash App
+
+Available for US users, instant processing.
+
+### Account Balance
+
+**Prepaid Mempool Account**
+
+- Fastest checkout
+- Pre-fund your account
+- Track spending
+- Priority access
+
+<Note>
+  Enterprise users can set up billing accounts for streamlined access.
+</Note>
+
+## Acceleration Guarantees
+
+### What's Guaranteed
+
+<Check>Transaction will be in partner pool block templates</Check>
+<Check>Confirmation in next block from partner pools</Check>
+<Check>Transparency throughout the process</Check>
+<Check>Receipt and tracking information</Check>
+
+### Important Limitations
+
+<Warning>
+  **Not Guaranteed:**
+  - Exact confirmation time (depends on when partner pool finds block)
+  - Immediate confirmation (blocks take 10 minutes on average)
+  - Confirmation if another issue exists (e.g., double-spend conflict)
+</Warning>
+
+### Partner Mining Pools
+
+Major pools participating in acceleration program:
+
+- **Foundry USA**: ~30% of hashrate
+- **MARA Pool**: ~10% of hashrate
+- Other partner pools
+
+Combined coverage: ~40-50% of network hashrate
+
+<Info>
+  With ~40% hashrate coverage, expected confirmation time is about 25 minutes on average.
+</Info>
+
+## Advanced Features
+
+### Batch Acceleration
+
+Accelerate multiple related transactions:
+
+- **Transaction chains**: Parent and child transactions
+- **Package acceleration**: Multiple inputs from same sender
+- **Cost optimization**: Better rates for batches
+
+### Custom Fee Rates
+
+Advanced users can:
+
+- Choose custom target fee rate
+- Balance cost vs. speed
+- Adjust for specific blocks
+
+<Tabs>
+  <Tab title="Standard">
+    **Recommended Rate**
+    
+    Next block inclusion with partner pools
+    - Safe default option
+    - Optimized cost/speed
+    - ~25 minute confirmation
+  </Tab>
+  
+  <Tab title="Custom">
+    **Manual Fee Selection**
+    
+    Set your own target rate:
+    - Pay less for slower confirmation
+    - Pay more for higher priority
+    - Advanced understanding required
+  </Tab>
+</Tabs>
+
+### API Access
+
+Integrate acceleration into your application:
+
+<CodeGroup>
+```bash Estimate Cost
+curl -X POST "https://mempool.space/api/v1/services/accelerator/estimate" \
+  -d '{"txid": "your_txid_here"}'
+```
+
+```bash Submit Acceleration
+curl -X POST "https://mempool.space/api/v1/services/accelerator/accelerate" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d '{"txid": "your_txid_here", "userBid": 50000}'
+```
+
+```bash Check Status
+curl "https://mempool.space/api/v1/services/accelerator/acceleration/:txid"
+```
+</CodeGroup>
+
+See [API Documentation](/api/services/acceleration) for details.
+
+## Acceleration Dashboard
+
+### Tracking Your Accelerations
+
+View all your accelerations:
+
+<img src="/images/accelerations-list.png" alt="Acceleration history dashboard" />
+
+- **Pending**: Awaiting partner pool to mine
+- **Completed**: Transaction confirmed
+- **Failed**: Confirmed by non-partner pool or other issue
+
+### Statistics and Analytics
+
+The dashboard shows:
+
+- **Success rate**: Percentage confirmed by partner pools
+- **Average time**: Mean time to confirmation
+- **Total accelerations**: Historical count
+- **Cost savings**: Compared to immediate RBF
+
+## Comparison with Alternatives
+
+### RBF (Replace-By-Fee)
+
+<CardGroup cols={2}>
+  <Card title="RBF Advantages" icon="plus">
+    - Cheaper (just pay fee difference)
+    - Sender controls process
+    - No third party needed
+    - Works with any transaction
+  </Card>
+  
+  <Card title="RBF Limitations" icon="minus">
+    - Must be enabled when sending
+    - Requires access to sending wallet
+    - Not available after sending
+    - Receiver can't initiate
+  </Card>
+</CardGroup>
+
+<Info>
+  **Best Practice**: Enable RBF on all transactions. Use acceleration only when RBF isn't available.
+</Info>
+
+### CPFP (Child-Pays-For-Parent)
+
+<CardGroup cols={2}>
+  <Card title="Self CPFP Advantages" icon="plus">
+    - Receiver can do it
+    - No third party needed
+    - Works without RBF
+    - Full control
+  </Card>
+  
+  <Card title="Self CPFP Limitations" icon="minus">
+    - Complex to execute
+    - Need technical knowledge
+    - Must calculate fees correctly
+    - Requires compatible wallet
+  </Card>
+</CardGroup>
+
+**Mempool Accelerator**: Automated CPFP with mining pool partnerships for guaranteed confirmation.
+
+### Comparison Table
+
+| Feature | RBF | Self CPFP | Mempool Accelerator |
+|---------|-----|-----------|--------------------|
+| **Ease of Use** | Easy | Complex | Very Easy |
+| **Availability** | Only if enabled | Always | Always |
+| **Who Can Use** | Sender only | Receiver only | Anyone |
+| **Guaranteed Confirmation** | No | No | Yes (partner pools) |
+| **Cost** | Lowest | Medium | Higher |
+| **Speed** | Fast | Varies | Guaranteed fast |
+
+## Frequently Asked Questions
+
+<AccordionGroup>
+  <Accordion title="How long until my transaction confirms?">
+    With ~40% hashrate coverage from partner pools:
+    - **Average**: 20-30 minutes
+    - **Best case**: Next block (10 min)
+    - **Worst case**: If non-partner finds next few blocks (60+ min)
+    
+    Statistically, partner pools should mine a block within 25 minutes.
+  </Accordion>
+  
+  <Accordion title="What if it doesn't confirm?">
+    Acceleration continues until confirmation:
+    - Your transaction stays prioritized
+    - No additional payment needed
+    - Guaranteed inclusion in partner pool blocks
+    - Confirmation may just take longer if non-partners mine blocks
+  </Accordion>
+  
+  <Accordion title="Can I accelerate someone else's transaction?">
+    Yes, if:
+    - You're the recipient (can do CPFP)
+    - You have an output you can spend
+    - You're willing to pay the cost
+    
+    Common for exchanges/merchants helping customers.
+  </Accordion>
+  
+  <Accordion title="What happens if someone else accelerates my transaction?">
+    Good news:
+    - Your transaction benefits
+    - No cost to you
+    - Will confirm faster
+    - Nothing you need to do
+  </Accordion>
+  
+  <Accordion title="Can I cancel an acceleration?">
+    No, once paid:
+    - Acceleration is final
+    - Transaction will be prioritized
+    - Refunds not available
+    - Transaction will eventually confirm
+  </Accordion>
+  
+  <Accordion title="Is acceleration cheaper than using high fees initially?">
+    Usually no:
+    - Best to use correct fees from the start
+    - Acceleration adds service fees
+    - Use as last resort
+    
+    But cheaper than:
+    - Emergency RBF with very high fees
+    - Missing time-sensitive deadline
+    - Customer support burden
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+### Prevention
+
+<Check>Always check current fee rates before sending</Check>
+<Check>Enable RBF on all transactions</Check>
+<Check>Use SegWit addresses to reduce transaction size</Check>
+<Check>Don't broadcast during high-congestion periods</Check>
+<Check>Consider batching if sending multiple payments</Check>
+
+### When Stuck
+
+<Steps>
+  <Step title="Assess Urgency">
+    Is immediate confirmation necessary? If not, wait - most transactions confirm eventually.
+  </Step>
+  
+  <Step title="Try RBF First">
+    If transaction has RBF enabled and you control the wallet, try bumping fees yourself.
+  </Step>
+  
+  <Step title="Check Mempool">
+    Look at current mempool state - if clearing, might confirm naturally soon.
+  </Step>
+  
+  <Step title="Consider Acceleration">
+    If urgent and RBF not available, use Mempool accelerator for guaranteed confirmation.
+  </Step>
+</Steps>
+
+### For Businesses
+
+<Check>Integrate acceleration API for customer support</Check>
+<Check>Set up account billing for streamlined access</Check>
+<Check>Monitor transaction status proactively</Check>
+<Check>Educate customers about proper fee estimation</Check>
+<Check>Consider Lightning Network for frequent small payments</Check>
+
+## Technical Details
+
+### Transaction Packages
+
+CPFP works with transaction packages:
+
+```
+Package:
+- Parent: Your stuck transaction
+- Child: New transaction spending parent output
+- Combined: Treated as single unit by miners
+
+Effective Fee Rate:
+= (Parent Fee + Child Fee) / (Parent Size + Child Size)
+```
+
+### Mining Pool Integration
+
+How partner pools prioritize accelerations:
+
+1. **Block Template**: Pools create block candidates
+2. **Acceleration Injection**: Accelerated txs added with high priority
+3. **Fee Optimization**: Still maximizes total block fees
+4. **Broadcasting**: Block mined and broadcast to network
+
+### Mempool Policy
+
+Acceleration respects Bitcoin consensus rules:
+
+- No double-spends
+- Valid signatures
+- Proper fee payment
+- Standard transaction types
+
+<Note>
+  Acceleration can't help with invalid transactions or double-spend conflicts.
+</Note>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Acceleration button not showing">
+    Possible reasons:
+    - Transaction already confirmed
+    - Transaction has no outputs you can spend
+    - Transaction is non-standard
+    - Already accelerated
+    - Conflict/double-spend detected
+  </Accordion>
+  
+  <Accordion title="Quote seems expensive">
+    Cost factors:
+    - Current mempool congestion
+    - Your transaction size
+    - Number of ancestors
+    - Target fee rate
+    
+    During extreme congestion, acceleration is expensive for everyone.
+  </Accordion>
+  
+  <Accordion title="Payment failed">
+    Check:
+    - Payment transaction had sufficient fees
+    - Wallet had enough balance
+    - Network connection stable
+    - Payment invoice not expired
+    
+    Try again or contact support.
+  </Accordion>
+</AccordionGroup>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Fee Estimation" icon="coins" href="/features/fee-estimation">
+    Avoid getting stuck by using proper fees from the start
+  </Card>
+  
+  <Card title="Mempool Visualizer" icon="chart-area" href="/features/mempool-visualizer">
+    Understand mempool conditions and fee markets
+  </Card>
+  
+  <Card title="Blockchain Explorer" icon="magnifying-glass" href="/features/blockchain-explorer">
+    Track your transaction status and confirmations
+  </Card>
+  
+  <Card title="Mining Dashboard" icon="hammer" href="/features/mining-dashboard">
+    See which pools are mining blocks and their activity
+  </Card>
+</CardGroup>

@@ -1,0 +1,282 @@
+---
+title: 'Network Hashrate'
+description: 'Retrieve historical network and pool hashrate data'
+---
+
+## Get Historical Network Hashrate
+
+<CodeBlock title="GET /api/v1/mining/hashrate/:interval">
+Retrieves historical network hashrate data aggregated by day, along with difficulty adjustment information.
+</CodeBlock>
+
+### Path Parameters
+
+<ParamField path="interval" type="string" required>
+  Time interval for hashrate data. Supported values:
+  - `24h` - Last 24 hours
+  - `3d` - Last 3 days
+  - `1w` - Last week
+  - `1m` - Last month
+  - `3m` - Last 3 months
+  - `6m` - Last 6 months
+  - `1y` - Last year
+  - `2y` - Last 2 years
+  - `3y` - Last 3 years
+  - `4y` - Last 4 years
+  - `all` - All time
+</ParamField>
+
+### Response
+
+<ResponseField name="hashrates" type="array">
+  Array of hashrate data points
+  <Expandable title="properties">
+    <ResponseField name="timestamp" type="number">
+      Unix timestamp of the data point
+    </ResponseField>
+    <ResponseField name="avgHashrate" type="number">
+      Average hashrate in H/s for the day
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="difficulty" type="array">
+  Array of difficulty adjustment data points
+  <Expandable title="properties">
+    <ResponseField name="time" type="number">
+      Unix timestamp of the adjustment
+    </ResponseField>
+    <ResponseField name="height" type="number">
+      Block height where adjustment occurred
+    </ResponseField>
+    <ResponseField name="difficulty" type="number">
+      New difficulty value
+    </ResponseField>
+    <ResponseField name="adjustment" type="number">
+      Difficulty multiplier (e.g., 1.05 = 5% increase)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="currentHashrate" type="number">
+  Current network hashrate in H/s (based on last 1008 blocks)
+</ResponseField>
+
+<ResponseField name="currentDifficulty" type="number">
+  Current network difficulty
+</ResponseField>
+
+### Example Request
+
+```bash cURL
+curl "https://mempool.space/api/v1/mining/hashrate/1w"
+```
+
+### Example Response
+
+```json
+{
+  "hashrates": [
+    {
+      "timestamp": 1709251200,
+      "avgHashrate": 450000000000000000000
+    },
+    {
+      "timestamp": 1709337600,
+      "avgHashrate": 452000000000000000000
+    }
+  ],
+  "difficulty": [
+    {
+      "time": 1709200000,
+      "height": 835008,
+      "difficulty": 79351228131136.77,
+      "adjustment": 1.02
+    }
+  ],
+  "currentHashrate": 455000000000000000000,
+  "currentDifficulty": 79351228131136.77
+}
+```
+
+---
+
+## Get Historical Pool Hashrates
+
+<CodeBlock title="GET /api/v1/mining/hashrate/pools/:interval">
+Retrieves weekly hashrate data for the top mining pools over a specified time interval.
+</CodeBlock>
+
+### Path Parameters
+
+<ParamField path="interval" type="string" required>
+  Time interval for hashrate data. Same values as network hashrate endpoint.
+</ParamField>
+
+### Response
+
+Returns an array of hashrate data points for each pool.
+
+<ResponseField name="response" type="array">
+  Array of pool hashrate data points
+  <Expandable title="properties">
+    <ResponseField name="timestamp" type="number">
+      Unix timestamp (weekly intervals)
+    </ResponseField>
+    <ResponseField name="avgHashrate" type="number">
+      Average hashrate in H/s for the pool
+    </ResponseField>
+    <ResponseField name="share" type="number">
+      Pool's share of total hashrate (0-1)
+    </ResponseField>
+    <ResponseField name="poolName" type="string">
+      Display name of the mining pool
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+```bash cURL
+curl "https://mempool.space/api/v1/mining/hashrate/pools/1m"
+```
+
+### Example Response
+
+```json
+[
+  {
+    "timestamp": 1709510400,
+    "avgHashrate": 108000000000000000000,
+    "share": 0.24,
+    "poolName": "Foundry USA"
+  },
+  {
+    "timestamp": 1709510400,
+    "avgHashrate": 90000000000000000000,
+    "share": 0.20,
+    "poolName": "AntPool"
+  },
+  {
+    "timestamp": 1710115200,
+    "avgHashrate": 110000000000000000000,
+    "share": 0.25,
+    "poolName": "Foundry USA"
+  }
+]
+```
+
+---
+
+## Get Individual Pool Hashrate
+
+<CodeBlock title="GET /api/v1/mining/pool/:slug/hashrate">
+Retrieves weekly historical hashrate data for a specific mining pool.
+</CodeBlock>
+
+### Path Parameters
+
+<ParamField path="slug" type="string" required>
+  URL-friendly identifier of the mining pool (e.g., `foundryusa`, `antpool`)
+</ParamField>
+
+### Response
+
+Returns an array of weekly hashrate data points for the specified pool.
+
+<ResponseField name="response" type="array">
+  Array of hashrate data points
+  <Expandable title="properties">
+    <ResponseField name="timestamp" type="number">
+      Unix timestamp (weekly intervals)
+    </ResponseField>
+    <ResponseField name="avgHashrate" type="number">
+      Average hashrate in H/s for the week
+    </ResponseField>
+    <ResponseField name="share" type="number">
+      Pool's share of total hashrate (0-1)
+    </ResponseField>
+    <ResponseField name="poolName" type="string">
+      Display name of the mining pool
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+```bash cURL
+curl "https://mempool.space/api/v1/mining/pool/foundryusa/hashrate"
+```
+
+### Example Response
+
+```json
+[
+  {
+    "timestamp": 1708905600,
+    "avgHashrate": 105000000000000000000,
+    "share": 0.23,
+    "poolName": "Foundry USA"
+  },
+  {
+    "timestamp": 1709510400,
+    "avgHashrate": 108000000000000000000,
+    "share": 0.24,
+    "poolName": "Foundry USA"
+  },
+  {
+    "timestamp": 1710115200,
+    "avgHashrate": 110000000000000000000,
+    "share": 0.25,
+    "poolName": "Foundry USA"
+  }
+]
+```
+
+---
+
+## Understanding Hashrate Data
+
+### Network Hashrate
+
+The network hashrate is calculated based on the number of blocks mined and the network difficulty. It represents the total computational power securing the Bitcoin network.
+
+- **Daily hashrate**: Averaged over 144 blocks (approximately 1 day)
+- **Current hashrate**: Based on the last 1008 blocks (approximately 1 week)
+
+### Pool Hashrate
+
+Pool hashrate is estimated based on the pool's share of blocks mined during the time period:
+
+```
+Pool Hashrate = Network Hashrate × (Pool Blocks / Total Blocks)
+```
+
+### Hashrate Units
+
+Hashrate values are returned in H/s (hashes per second). Common conversions:
+- 1 TH/s = 10¹² H/s
+- 1 PH/s = 10¹⁵ H/s
+- 1 EH/s = 10¹⁸ H/s
+
+---
+
+## Error Responses
+
+<ResponseField name="404" type="error">
+  Returned when the specified mining pool does not exist
+  ```json
+  {
+    "error": "This mining pool does not exist"
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="500" type="error">
+  Returned when there's a server error fetching hashrate data
+  ```json
+  {
+    "error": "Failed to get pool historical hashrate"
+  }
+  ```
+</ResponseField>

@@ -1,122 +1,141 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Mempool",
+  "theme": "aspen",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#F7931A",
+    "light": "#FFA726",
+    "dark": "#E67E22"
   },
-  "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/mempool/mempool"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/mempool/mempool"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "introduction",
+              "quickstart"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Installation",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "installation/one-click",
+              "installation/docker",
+              "installation/manual",
+              "installation/production"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Core Features",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "features/mempool-visualizer",
+              "features/blockchain-explorer",
+              "features/fee-estimation",
+              "features/mining-dashboard",
+              "features/lightning-explorer",
+              "features/transaction-acceleration"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Configuration",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "configuration/backend-config",
+              "configuration/frontend-config",
+              "configuration/bitcoin-core",
+              "configuration/electrum-server",
+              "configuration/database"
+            ]
+          },
+          {
+            "group": "Self-Hosting",
+            "pages": [
+              "self-hosting/requirements",
+              "self-hosting/node-distros",
+              "self-hosting/scaling",
+              "self-hosting/maintenance"
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "development/setup",
+              "development/architecture",
+              "development/contributing",
+              "development/testing"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Overview",
             "pages": [
-              "api-reference/introduction"
+              "api/introduction",
+              "api/authentication",
+              "api/rate-limits"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Blockchain",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api/blockchain/blocks",
+              "api/blockchain/transactions",
+              "api/blockchain/addresses",
+              "api/blockchain/difficulty"
+            ]
+          },
+          {
+            "group": "Mempool",
+            "pages": [
+              "api/mempool/overview",
+              "api/mempool/fees",
+              "api/mempool/rbf",
+              "api/mempool/cpfp"
+            ]
+          },
+          {
+            "group": "Mining",
+            "pages": [
+              "api/mining/pools",
+              "api/mining/hashrate",
+              "api/mining/rewards",
+              "api/mining/difficulty-adjustment"
+            ]
+          },
+          {
+            "group": "Lightning Network",
+            "pages": [
+              "api/lightning/nodes",
+              "api/lightning/channels",
+              "api/lightning/statistics"
+            ]
+          },
+          {
+            "group": "Services",
+            "pages": [
+              "api/services/acceleration",
+              "api/services/prices",
+              "api/services/websocket"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

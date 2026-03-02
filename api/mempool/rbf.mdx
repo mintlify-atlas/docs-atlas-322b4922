@@ -1,0 +1,235 @@
+---
+title: 'RBF Endpoints'
+description: 'Track Replace-by-Fee transaction replacements'
+---
+
+## Get Transaction RBF History
+
+<CodeGroup>
+```bash curl
+curl "https://mempool.space/api/v1/tx/TXID/rbf"
+```
+</CodeGroup>
+
+<RequestExample>
+```bash Request
+GET /api/v1/tx/:txId/rbf
+```
+</RequestExample>
+
+Returns the RBF replacement tree for a transaction, showing both transactions it replaced and transactions that replaced it.
+
+### Path Parameters
+
+<ParamField path="txId" type="string" required>
+  Transaction ID (64-character hex string)
+</ParamField>
+
+### Response
+
+<ResponseField name="replacements" type="object" required>
+  Tree structure of replacement transactions. Contains:
+  - `tx`: Transaction details (stripped format)
+  - `time`: Unix timestamp when transaction was first seen
+  - `interval`: Time elapsed since previous version (seconds)
+  - `fullRbf`: Whether this was a full-RBF replacement (replaced non-signaling transaction)
+  - `replaces`: Array of previous transaction versions (recursive structure)
+</ResponseField>
+
+<ResponseField name="replaces" type="array" required>
+  Array of transaction IDs that this transaction directly replaced
+</ResponseField>
+
+<ResponseExample>
+```json Response Example
+{
+  "replacements": {
+    "tx": {
+      "txid": "abc123...",
+      "fee": 5000,
+      "vsize": 200,
+      "value": 100000,
+      "rbf": true,
+      "rate": 25
+    },
+    "time": 1709654321,
+    "interval": 300,
+    "fullRbf": false,
+    "replaces": [
+      {
+        "tx": {
+          "txid": "def456...",
+          "fee": 3000,
+          "vsize": 200,
+          "value": 100000,
+          "rbf": true,
+          "rate": 15
+        },
+        "time": 1709654021,
+        "interval": 600,
+        "fullRbf": false,
+        "replaces": []
+      }
+    ]
+  },
+  "replaces": ["def456..."]
+}
+```
+</ResponseExample>
+
+### Notes
+
+- Returns `null` for both fields if the transaction is not part of any RBF tree
+- Transaction details use a stripped format with essential fields only
+- The `fullRbf` flag indicates if any replacement in the tree was full-RBF
+- Timestamps are Unix epoch seconds
+
+---
+
+## Get Recent RBF Replacements
+
+<CodeGroup>
+```bash curl
+curl "https://mempool.space/api/v1/replacements"
+```
+</CodeGroup>
+
+<RequestExample>
+```bash Request
+GET /api/v1/replacements
+```
+</RequestExample>
+
+Returns a list of recent RBF replacement trees, ordered by most recent replacement time.
+
+### Response
+
+Returns an array of RBF trees (up to 25 items). Each tree has the same structure as the `/tx/:txId/rbf` endpoint:
+
+<ResponseField name="tx" type="object" required>
+  Transaction details for the latest version in this replacement chain
+</ResponseField>
+
+<ResponseField name="time" type="number" required>
+  Unix timestamp when this transaction was first seen
+</ResponseField>
+
+<ResponseField name="fullRbf" type="boolean" required>
+  Whether any replacement in this tree was full-RBF
+</ResponseField>
+
+<ResponseField name="replaces" type="array" required>
+  Array of previous transaction versions (recursive structure)
+</ResponseField>
+
+<ResponseExample>
+```json Response Example
+[
+  {
+    "tx": {
+      "txid": "abc123...",
+      "fee": 5000,
+      "vsize": 200,
+      "value": 100000,
+      "rbf": true,
+      "rate": 25
+    },
+    "time": 1709654321,
+    "fullRbf": false,
+    "replaces": [
+      {
+        "tx": {
+          "txid": "def456...",
+          "fee": 3000,
+          "vsize": 200,
+          "value": 100000,
+          "rbf": true,
+          "rate": 15
+        },
+        "time": 1709654021,
+        "interval": 300,
+        "fullRbf": false,
+        "replaces": []
+      }
+    ]
+  }
+]
+```
+</ResponseExample>
+
+### Pagination
+
+Results are limited to 25 trees per request. Trees are ordered by the timestamp of their most recent replacement.
+
+---
+
+## Get Full-RBF Replacements
+
+<CodeGroup>
+```bash curl
+curl "https://mempool.space/api/v1/fullrbf/replacements"
+```
+</CodeGroup>
+
+<RequestExample>
+```bash Request
+GET /api/v1/fullrbf/replacements
+```
+</RequestExample>
+
+Returns recent replacement trees that include at least one full-RBF transaction (a replacement where the original transaction did not signal RBF via BIP 125).
+
+### Response
+
+Identical structure to `/api/v1/replacements`, but filtered to only include trees where `fullRbf` is `true`.
+
+<ResponseExample>
+```json Response Example
+[
+  {
+    "tx": {
+      "txid": "xyz789...",
+      "fee": 8000,
+      "vsize": 250,
+      "value": 200000,
+      "rbf": true,
+      "rate": 32,
+      "fullRbf": true
+    },
+    "time": 1709654500,
+    "fullRbf": true,
+    "replaces": [
+      {
+        "tx": {
+          "txid": "uvw012...",
+          "fee": 2000,
+          "vsize": 250,
+          "value": 200000,
+          "rbf": false,
+          "rate": 8
+        },
+        "time": 1709653000,
+        "interval": 1500,
+        "fullRbf": true,
+        "replaces": []
+      }
+    ]
+  }
+]
+```
+</ResponseExample>
+
+### Full-RBF Explained
+
+Full-RBF allows replacing transactions that did not signal replaceability via BIP 125:
+
+- **Standard RBF**: Transaction has at least one input with `nSequence < 0xfffffffe`
+- **Full-RBF**: Transaction is replaced even though it had all inputs with `nSequence = 0xfffffffe` or higher
+
+Full-RBF is controversial as it bypasses the opt-in signaling mechanism of BIP 125. Some nodes run with `-mempoolfullrbf=1` to accept such replacements.
+
+### Use Cases
+
+- **Network monitoring**: Track full-RBF adoption and usage
+- **Policy analysis**: Understand how nodes handle non-signaling replacements
+- **Wallet development**: Design strategies for fee bumping stuck transactions

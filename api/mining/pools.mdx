@@ -1,0 +1,347 @@
+---
+title: 'Mining Pools'
+description: 'Retrieve mining pool statistics, rankings, and block information'
+---
+
+## List All Mining Pools
+
+<CodeBlock title="GET /api/v1/mining/pools">
+Retrieves a list of all known mining pools with their names and identifiers.
+</CodeBlock>
+
+### Response
+
+<ResponseField name="response" type="array">
+  Array of mining pool objects
+  <Expandable title="properties">
+    <ResponseField name="name" type="string">
+      Display name of the mining pool
+    </ResponseField>
+    <ResponseField name="slug" type="string">
+      URL-friendly identifier for the pool
+    </ResponseField>
+    <ResponseField name="unique_id" type="number">
+      Unique identifier for the pool
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+```bash cURL
+curl "https://mempool.space/api/v1/mining/pools"
+```
+
+### Example Response
+
+```json
+[
+  {
+    "name": "Foundry USA",
+    "slug": "foundryusa",
+    "unique_id": 1
+  },
+  {
+    "name": "AntPool",
+    "slug": "antpool",
+    "unique_id": 2
+  }
+]
+```
+
+---
+
+## Get Pool Statistics
+
+<CodeBlock title="GET /api/v1/mining/pools/:interval">
+Retrieves aggregated statistics for all mining pools over a specified time interval.
+</CodeBlock>
+
+### Path Parameters
+
+<ParamField path="interval" type="string" required>
+  Time interval for statistics. Supported values:
+  - `24h` - Last 24 hours
+  - `3d` - Last 3 days
+  - `1w` - Last week
+  - `1m` - Last month
+  - `3m` - Last 3 months
+  - `6m` - Last 6 months
+  - `1y` - Last year
+  - `2y` - Last 2 years
+  - `3y` - Last 3 years
+  - `4y` - Last 4 years
+  - `all` - All time
+</ParamField>
+
+### Response
+
+<ResponseField name="pools" type="array">
+  Array of pool statistics
+  <Expandable title="properties">
+    <ResponseField name="poolId" type="number">
+      Internal database ID of the pool
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Display name of the mining pool
+    </ResponseField>
+    <ResponseField name="link" type="string">
+      Website URL for the pool
+    </ResponseField>
+    <ResponseField name="blockCount" type="number">
+      Number of blocks mined in the interval
+    </ResponseField>
+    <ResponseField name="rank" type="number">
+      Pool's rank by block count
+    </ResponseField>
+    <ResponseField name="emptyBlocks" type="number">
+      Number of empty blocks mined
+    </ResponseField>
+    <ResponseField name="slug" type="string">
+      URL-friendly identifier
+    </ResponseField>
+    <ResponseField name="avgMatchRate" type="number | null">
+      Average template match rate (0-100)
+    </ResponseField>
+    <ResponseField name="avgFeeDelta" type="number | null">
+      Average fee delta compared to expected fees
+    </ResponseField>
+    <ResponseField name="poolUniqueId" type="number">
+      Unique identifier for the pool
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="blockCount" type="number">
+  Total number of blocks in the interval
+</ResponseField>
+
+<ResponseField name="lastEstimatedHashrate" type="number">
+  Current estimated network hashrate (last 24h)
+</ResponseField>
+
+<ResponseField name="lastEstimatedHashrate3d" type="number">
+  Estimated network hashrate (last 3 days)
+</ResponseField>
+
+<ResponseField name="lastEstimatedHashrate1w" type="number">
+  Estimated network hashrate (last week)
+</ResponseField>
+
+### Example Request
+
+```bash cURL
+curl "https://mempool.space/api/v1/mining/pools/1w"
+```
+
+### Example Response
+
+```json
+{
+  "pools": [
+    {
+      "poolId": 1,
+      "name": "Foundry USA",
+      "link": "https://foundrydigital.com",
+      "blockCount": 250,
+      "rank": 1,
+      "emptyBlocks": 2,
+      "slug": "foundryusa",
+      "avgMatchRate": 98.5,
+      "avgFeeDelta": 0.02,
+      "poolUniqueId": 1
+    }
+  ],
+  "blockCount": 1008,
+  "lastEstimatedHashrate": 450000000000000000000,
+  "lastEstimatedHashrate3d": 448000000000000000000,
+  "lastEstimatedHashrate1w": 445000000000000000000
+}
+```
+
+---
+
+## Get Individual Pool Details
+
+<CodeBlock title="GET /api/v1/mining/pool/:slug">
+Retrieves detailed statistics for a specific mining pool.
+</CodeBlock>
+
+### Path Parameters
+
+<ParamField path="slug" type="string" required>
+  URL-friendly identifier of the mining pool (e.g., `foundryusa`, `antpool`)
+</ParamField>
+
+### Response
+
+<ResponseField name="pool" type="object">
+  Pool information
+  <Expandable title="properties">
+    <ResponseField name="id" type="number">
+      Internal database ID
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Display name of the pool
+    </ResponseField>
+    <ResponseField name="slug" type="string">
+      URL-friendly identifier
+    </ResponseField>
+    <ResponseField name="link" type="string">
+      Website URL
+    </ResponseField>
+    <ResponseField name="unique_id" type="number">
+      Unique identifier
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="blockCount" type="object">
+  Block counts by time period
+  <Expandable title="properties">
+    <ResponseField name="all" type="number">
+      Total blocks mined all time
+    </ResponseField>
+    <ResponseField name="24h" type="number">
+      Blocks mined in last 24 hours
+    </ResponseField>
+    <ResponseField name="1w" type="number">
+      Blocks mined in last week
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="blockShare" type="object">
+  Pool's share of total blocks
+  <Expandable title="properties">
+    <ResponseField name="all" type="number">
+      Share of all blocks (0-1)
+    </ResponseField>
+    <ResponseField name="24h" type="number">
+      Share in last 24 hours (0-1)
+    </ResponseField>
+    <ResponseField name="1w" type="number">
+      Share in last week (0-1)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="estimatedHashrate" type="number">
+  Estimated hashrate in H/s based on 24h block share
+</ResponseField>
+
+<ResponseField name="reportedHashrate" type="number | null">
+  Pool's self-reported hashrate (usually null)
+</ResponseField>
+
+<ResponseField name="avgBlockHealth" type="number | null">
+  Average block health score
+</ResponseField>
+
+<ResponseField name="totalReward" type="number">
+  Total rewards earned in satoshis
+</ResponseField>
+
+### Example Request
+
+```bash cURL
+curl "https://mempool.space/api/v1/mining/pool/foundryusa"
+```
+
+### Example Response
+
+```json
+{
+  "pool": {
+    "id": 1,
+    "name": "Foundry USA",
+    "slug": "foundryusa",
+    "link": "https://foundrydigital.com",
+    "unique_id": 1
+  },
+  "blockCount": {
+    "all": 52000,
+    "24h": 35,
+    "1w": 250
+  },
+  "blockShare": {
+    "all": 0.28,
+    "24h": 0.24,
+    "1w": 0.25
+  },
+  "estimatedHashrate": 108000000000000000000,
+  "reportedHashrate": null,
+  "avgBlockHealth": 98.5,
+  "totalReward": 32500000000000
+}
+```
+
+---
+
+## Get Pool Blocks
+
+<CodeBlock title="GET /api/v1/mining/pool/:slug/blocks">
+Retrieves the most recent blocks mined by a specific pool.
+</CodeBlock>
+
+### Path Parameters
+
+<ParamField path="slug" type="string" required>
+  URL-friendly identifier of the mining pool
+</ParamField>
+
+### Response
+
+Returns an array of block objects with standard block information.
+
+### Example Request
+
+```bash cURL
+curl "https://mempool.space/api/v1/mining/pool/foundryusa/blocks"
+```
+
+---
+
+## Get Pool Blocks from Height
+
+<CodeBlock title="GET /api/v1/mining/pool/:slug/blocks/:height">
+Retrieves blocks mined by a pool starting from a specific block height.
+</CodeBlock>
+
+### Path Parameters
+
+<ParamField path="slug" type="string" required>
+  URL-friendly identifier of the mining pool
+</ParamField>
+
+<ParamField path="height" type="number" required>
+  Starting block height
+</ParamField>
+
+### Example Request
+
+```bash cURL
+curl "https://mempool.space/api/v1/mining/pool/foundryusa/blocks/800000"
+```
+
+---
+
+## Error Responses
+
+<ResponseField name="404" type="error">
+  Returned when the specified mining pool does not exist
+  ```json
+  {
+    "error": "This mining pool does not exist"
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="500" type="error">
+  Returned when there's a server error fetching pool data
+  ```json
+  {
+    "error": "Failed to get pool"
+  }
+  ```
+</ResponseField>

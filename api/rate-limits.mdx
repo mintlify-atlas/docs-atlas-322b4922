@@ -1,0 +1,494 @@
+---
+title: 'Rate Limits'
+description: 'Rate limiting policies and best practices for the Mempool API'
+icon: 'gauge'
+---
+
+## Overview
+
+The Mempool API implements fair-use rate limiting to ensure reliable service for all users. Rate limits protect the infrastructure from abuse while allowing generous access for legitimate use cases.
+
+<Note>
+  The API does not require authentication, but rate limiting is applied per IP address to ensure fair resource distribution.
+</Note>
+
+## Rate Limiting Policy
+
+### Public Instance Limits
+
+The official Mempool.space API applies rate limiting based on:
+
+- **IP Address** - Limits are enforced per source IP
+- **Endpoint Type** - Different endpoints may have different limits
+- **Request Pattern** - Burst protection prevents rapid-fire requests
+
+<Warning>
+  **No Published Hard Limits**
+  
+  The Mempool API does not publish specific rate limit numbers. This is intentional to:
+  - Prevent abuse by bad actors
+  - Allow flexibility to adjust limits based on load
+  - Encourage responsible API usage patterns
+</Warning>
+
+### Response Headers
+
+The API does not currently return rate limit headers like `X-RateLimit-Remaining`. Instead:
+
+- **Normal requests** receive standard HTTP 200-level responses
+- **Rate-limited requests** receive HTTP 429 (Too Many Requests) or 503 (Service Unavailable)
+
+## Request Limits by Category
+
+### Standard Endpoints
+
+Most read operations have generous limits suitable for:
+
+- ✅ Web applications checking transaction status
+- ✅ Mobile apps fetching fee recommendations
+- ✅ Dashboards polling for block updates
+- ✅ Analytics tools gathering statistics
+
+```bash Example: Reasonable Polling
+# Check fee recommendations every 30-60 seconds
+while true; do
+  curl https://mempool.space/api/v1/fees/recommended
+  sleep 30
+done
+```
+
+### Bulk Query Endpoints
+
+Endpoints that return large datasets have additional restrictions:
+
+#### Block Bulk Queries
+
+```bash GET /blocks-bulk/:from/:to
+# Limited by MAX_BLOCKS_BULK_QUERY config
+# Default: Maximum 10-15 blocks per request
+
+curl https://mempool.space/api/v1/blocks-bulk/825000/825010
+
+# Requesting too many blocks returns:
+{
+  "error": "You can only query 10 blocks at once."
+}
+```
+
+<Note>
+  The `MAX_BLOCKS_BULK_QUERY` configuration parameter controls the maximum number of blocks that can be requested in a single bulk query.
+</Note>
+
+#### Batched Operations
+
+Certain endpoints limit batch sizes:
+
+```bash GET /txs/outspends
+# Maximum 50 transaction IDs per request
+
+curl 'https://mempool.space/api/v1/txs/outspends?txids=abc...,def...,ghi...'
+
+# More than 50 txids returns:
+{
+  "error": "Too many txids requested"
+}
+```
+
+```bash POST /prevouts
+# Maximum 100 outpoints per request
+
+curl -X POST https://mempool.space/api/v1/prevouts \
+  -H 'Content-Type: application/json' \
+  -d '[{"txid":"...","vout":0}, ...]'
+
+# More than 100 outpoints returns:
+{
+  "error": "Too many outpoints requested"
+}
+```
+
+### Write Operations
+
+#### Transaction Broadcasting
+
+Transaction broadcast endpoints have size and rate limits:
+
+```bash POST /tx or POST /tx/push
+# Transaction size limited by MAX_PUSH_TX_SIZE_WEIGHT
+# Typically around 400,000 weight units
+
+# Oversized transactions return:
+{
+  "error": "Transaction exceeds maximum size"
+}
+```
+
+<Warning>
+  **Broadcasting Limits**
+  
+  Repeated transaction broadcasts (especially failed ones) may trigger rate limiting. Only broadcast valid, unique transactions.
+</Warning>
+
+### Service-Specific Endpoints
+
+Acceleration and other premium services may have stricter limits:
+
+```bash POST /acceleration/request/:txid
+# Limited to prevent spam
+# Subject to additional service-specific restrictions
+```
+
+## Cache Headers
+
+Many endpoints include cache directives to reduce redundant requests:
+
+### Long-Term Caching
+
+Historical data (old blocks, confirmed transactions) has long cache times:
+
+```http
+Expires: Thu, 01 Apr 2026 12:00:00 GMT
+Cache-Control: public
+Pragma: public
+```
+
+**Cached for:**
+- Blocks older than 1 year: **30 days**
+- Blocks older than 1 month: **10 days**  
+- Recent blocks: **10 minutes**
+- Block audits: **24 hours**
+
+### Short-Term Caching
+
+Real-time data has shorter cache times:
+
+```http
+Expires: Thu, 02 Mar 2026 22:05:00 GMT
+Cache-Control: public
+Pragma: public
+```
+
+**Cached for:**
+- Fee recommendations: **30-60 seconds**
+- Mempool statistics: **1-5 minutes**
+- Mining statistics: **1-5 minutes**
+- Price data: **5 minutes**
+
+<Note>
+  Respect cache headers in your application to minimize unnecessary requests and improve performance.
+</Note>
+
+## Best Practices
+
+### Do's ✅
+
+<AccordionGroup>
+  <Accordion title="Implement Client-Side Caching">
+    Cache API responses based on the `Expires` and `Cache-Control` headers:
+    
+    ```javascript
+    const cache = new Map();
+    
+    async function fetchWithCache(url) {
+      const cached = cache.get(url);
+      if (cached && cached.expires > Date.now()) {
+        return cached.data;
+      }
+      
+      const response = await fetch(url);
+      const expires = new Date(response.headers.get('Expires')).getTime();
+      const data = await response.json();
+      
+      cache.set(url, { data, expires });
+      return data;
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Use Appropriate Polling Intervals">
+    Match your polling interval to the data update frequency:
+    
+    | Data Type | Recommended Interval |
+    |-----------|---------------------|
+    | Fee estimates | 30-60 seconds |
+    | Mempool status | 30-60 seconds |
+    | New blocks | 30-60 seconds |
+    | Transaction status | 10-30 seconds |
+    | Historical data | On-demand only |
+  </Accordion>
+  
+  <Accordion title="Handle Rate Limit Errors">
+    Implement exponential backoff when you receive 429 or 503 responses:
+    
+    ```javascript
+    async function fetchWithRetry(url, maxRetries = 3) {
+      for (let i = 0; i < maxRetries; i++) {
+        const response = await fetch(url);
+        
+        if (response.ok) {
+          return response.json();
+        }
+        
+        if (response.status === 429 || response.status === 503) {
+          const delay = Math.pow(2, i) * 1000; // Exponential backoff
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        throw new Error(`API error: ${response.status}`);
+      }
+      throw new Error('Max retries exceeded');
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Batch Requests Wisely">
+    Use batch endpoints when available, but respect limits:
+    
+    ```javascript
+    // Good: Batch within limits
+    const txids = ['abc...', 'def...', 'ghi...']; // 3 txids
+    const outspends = await fetch(
+      `https://mempool.space/api/v1/txs/outspends?txids=${txids.join(',')}`
+    ).then(r => r.json());
+    
+    // Bad: Exceeding batch limit
+    const manyTxids = new Array(100).fill('abc...'); // 100 txids
+    // This will fail with "Too many txids requested"
+    ```
+  </Accordion>
+  
+  <Accordion title="Use WebSockets for Real-Time Updates">
+    For real-time data, consider using WebSocket connections instead of polling:
+    
+    ```javascript
+    const ws = new WebSocket('wss://mempool.space/api/v1/ws');
+    
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      // Handle real-time updates
+    };
+    ```
+    
+    WebSockets reduce load and provide instant updates.
+  </Accordion>
+</AccordionGroup>
+
+### Don'ts ❌
+
+<Warning>
+  **Avoid These Patterns**
+  
+  - ❌ Polling faster than every 10 seconds
+  - ❌ Making parallel requests for the same data
+  - ❌ Ignoring cache headers and re-requesting cached data
+  - ❌ Implementing aggressive retry loops without backoff
+  - ❌ Scraping large amounts of historical data rapidly
+  - ❌ Broadcasting the same transaction repeatedly
+  - ❌ Using the API as a database for your application
+</Warning>
+
+## Error Responses
+
+When you hit rate limits, you'll receive one of these responses:
+
+### HTTP 429: Too Many Requests
+
+```json
+{
+  "error": "Too many requests"
+}
+```
+
+**Action:** Implement exponential backoff and reduce request frequency.
+
+### HTTP 503: Service Unavailable
+
+```json
+{
+  "error": "Service Unavailable"
+}
+```
+
+**Reasons:**
+- Mempool is still syncing
+- Backend is temporarily unavailable
+- Rate limiting protection triggered
+
+**Action:** Wait and retry with exponential backoff.
+
+### HTTP 400: Too Many Items
+
+```json
+{
+  "error": "Too many txids requested"
+}
+```
+
+**Action:** Reduce batch size and split into multiple requests.
+
+## Self-Hosted Instances
+
+If you need higher rate limits or guaranteed availability, consider running your own Mempool instance:
+
+<Steps>
+  <Step title="Deploy Mempool">
+    Deploy your own Mempool instance using Docker or from source:
+    
+    ```bash
+    git clone https://github.com/mempool/mempool
+    cd mempool
+    docker-compose up -d
+    ```
+  </Step>
+  
+  <Step title="Configure Rate Limits">
+    Adjust rate limiting in your web server (nginx, Apache, etc.) configuration.
+  </Step>
+  
+  <Step title="Set Bulk Limits">
+    Configure `MAX_BLOCKS_BULK_QUERY` in your mempool-config.json:
+    
+    ```json
+    {
+      "MEMPOOL": {
+        "MAX_BLOCKS_BULK_QUERY": 100
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Scale Resources">
+    Allocate adequate resources (CPU, RAM, disk) for your expected load.
+  </Step>
+</Steps>
+
+<Note>
+  Self-hosted instances give you full control over rate limits, allowing you to tune them for your specific use case.
+</Note>
+
+## Network-Specific Considerations
+
+### Testnet vs Mainnet
+
+Testnet instances typically have more relaxed rate limits since:
+- Lower traffic volume
+- Less resource constraints
+- Primarily used for development and testing
+
+```bash Testnet Usage
+# Testnet API for development
+curl https://mempool.space/testnet/api/v1/fees/recommended
+```
+
+### Indexing Requirements
+
+Some endpoints require indexing to be enabled:
+
+```bash Bulk Block Queries
+GET /blocks-bulk/:from/:to
+
+# Without indexing enabled:
+{
+  "error": "Indexing is required for this API"
+}
+```
+
+## Monitoring Your Usage
+
+### Track Your Request Patterns
+
+Monitor your API usage to stay within limits:
+
+```javascript
+let requestCount = 0;
+let windowStart = Date.now();
+
+function trackRequest() {
+  requestCount++;
+  const elapsed = Date.now() - windowStart;
+  
+  if (elapsed >= 60000) { // 1 minute window
+    console.log(`Requests per minute: ${requestCount}`);
+    requestCount = 0;
+    windowStart = Date.now();
+  }
+}
+```
+
+### Log Rate Limit Errors
+
+Keep track of when you encounter rate limits:
+
+```javascript
+function logRateLimitError(response) {
+  console.error({
+    timestamp: new Date().toISOString(),
+    status: response.status,
+    endpoint: response.url,
+    retryAfter: response.headers.get('Retry-After')
+  });
+}
+```
+
+## Contact and Support
+
+If you have legitimate high-volume use cases:
+
+<CardGroup cols={2}>
+  <Card title="Self-Host" icon="server" href="https://github.com/mempool/mempool">
+    Run your own instance for unlimited API access
+  </Card>
+  
+  <Card title="GitHub Issues" icon="github" href="https://github.com/mempool/mempool/issues">
+    Report technical issues or discuss API improvements
+  </Card>
+  
+  <Card title="Community" icon="telegram" href="https://t.me/mempool">
+    Join the Telegram community for support
+  </Card>
+  
+  <Card title="Enterprise" icon="building" href="https://mempool.space">
+    Contact for enterprise deployment assistance
+  </Card>
+</CardGroup>
+
+## Summary
+
+<CardGroup cols={3}>
+  <Card title="Be Reasonable" icon="handshake">
+    Use sensible polling intervals (30+ seconds for most data)
+  </Card>
+  
+  <Card title="Respect Caches" icon="clock">
+    Honor Expires and Cache-Control headers
+  </Card>
+  
+  <Card title="Handle Errors" icon="triangle-exclamation">
+    Implement exponential backoff for 429/503 responses
+  </Card>
+  
+  <Card title="Batch Smartly" icon="layer-group">
+    Use batch endpoints within documented limits
+  </Card>
+  
+  <Card title="Cache Locally" icon="database">
+    Store responses client-side when appropriate
+  </Card>
+  
+  <Card title="Self-Host" icon="server">
+    Run your own instance for demanding use cases
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="book" href="/api/blockchain/transactions">
+    Explore available endpoints
+  </Card>
+  
+  <Card title="WebSocket API" icon="plug" href="/api/services/websocket">
+    Learn about real-time data streaming
+  </Card>
+</CardGroup>

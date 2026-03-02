@@ -1,0 +1,634 @@
+---
+title: 'Electrum Server Configuration'
+description: 'Configure an Electrum server for address lookups and transaction history'
+icon: 'bolt'
+---
+
+An Electrum server provides efficient address lookup and transaction history functionality for Mempool. While optional, it's highly recommended for a complete blockchain explorer experience.
+
+<Note>
+Mempool can run without an Electrum server (set `BACKEND: "none"`), but address lookups and address-based features will be disabled.
+</Note>
+
+## Choosing an Electrum Server
+
+Mempool supports multiple Electrum server implementations, each with different trade-offs.
+
+<CardGroup cols={2}>
+  <Card title="romanz/electrs" icon="rust" href="https://github.com/romanz/electrs">
+    **Original Electrs** (Rust)
+    
+    - Lower disk usage (~60GB additional)
+    - Lower memory usage (~4GB RAM)
+    - Slower indexing
+    - Good for resource-constrained systems
+    
+    Backend type: `electrum`
+  </Card>
+
+  <Card title="Blockstream/electrs" icon="tower-broadcast" href="https://github.com/Blockstream/electrs">
+    **Esplora** (Rust)
+    
+    - Higher disk usage (~120GB additional)
+    - Higher memory usage (~8GB+ RAM)
+    - Faster queries
+    - Production-grade performance
+    
+    Backend type: `esplora`
+  </Card>
+
+  <Card title="cculianu/Fulcrum" icon="zap" href="https://github.com/cculianu/Fulcrum">
+    **Fulcrum** (C++)
+    
+    - Medium disk usage (~80GB)
+    - Excellent performance
+    - Feature-rich
+    - Popular choice
+    
+    Backend type: `electrum`
+  </Card>
+
+  <Card title="Other Options" icon="ellipsis">
+    **ElectrumX, Electrum Personal Server**
+    
+    Less common options that may work with varying degrees of compatibility.
+  </Card>
+</CardGroup>
+
+<Warning>
+**Performance Matters:** Your Electrum server choice significantly impacts Mempool's responsiveness for address queries. Fulcrum and Esplora offer the best performance.
+</Warning>
+
+## Installation Guides
+
+<Tabs>
+  <Tab title="romanz/electrs">
+    ### Original Electrs (romanz)
+
+    **System Requirements:**
+    - 60+ GB free disk space (additional to Bitcoin Core)
+    - 4+ GB RAM
+    - Rust compiler
+
+    <Steps>
+      <Step title="Install Dependencies">
+        ```bash
+        # Debian/Ubuntu
+        sudo apt-get install cargo clang cmake
+
+        # macOS
+        brew install rust
+        ```
+      </Step>
+
+      <Step title="Clone and Build">
+        ```bash
+        git clone https://github.com/romanz/electrs
+        cd electrs
+        cargo build --release
+        ```
+      </Step>
+
+      <Step title="Create Configuration">
+        Create `config.toml`:
+
+        ```toml
+        # Bitcoin Core RPC
+        daemon_rpc_addr = "127.0.0.1:8332"
+        daemon_dir = "/bitcoin"
+        
+        # Electrum server
+        electrum_rpc_addr = "127.0.0.1:50001"
+        
+        # Database
+        db_dir = "/electrs/db"
+        
+        # Network (mainnet, testnet, signet, regtest)
+        network = "mainnet"
+        
+        # Indexing options
+        index_lookup_limit = 1000
+        server_banner = "Welcome to electrs"
+        ```
+      </Step>
+
+      <Step title="Run Electrs">
+        ```bash
+        ./target/release/electrs --conf config.toml
+        ```
+
+        Initial indexing takes 12-48 hours depending on hardware.
+      </Step>
+    </Steps>
+
+    <Accordion title="Systemd Service">
+      Create `/etc/systemd/system/electrs.service`:
+
+      ```ini
+      [Unit]
+      Description=Electrs Electrum Server
+      After=bitcoind.service
+      Requires=bitcoind.service
+
+      [Service]
+      Type=simple
+      User=electrs
+      Group=electrs
+      ExecStart=/usr/local/bin/electrs --conf /etc/electrs/config.toml
+      Restart=on-failure
+      RestartSec=30
+
+      # Security hardening
+      PrivateTmp=true
+      ProtectSystem=full
+      NoNewPrivileges=true
+
+      [Install]
+      WantedBy=multi-user.target
+      ```
+
+      Enable and start:
+      ```bash
+      sudo systemctl enable electrs
+      sudo systemctl start electrs
+      ```
+    </Accordion>
+  </Tab>
+
+  <Tab title="Blockstream/electrs (Esplora)">
+    ### Esplora (Blockstream/electrs)
+
+    **System Requirements:**
+    - 120+ GB free disk space
+    - 8+ GB RAM
+    - Rust compiler
+
+    <Steps>
+      <Step title="Clone and Build">
+        ```bash
+        git clone https://github.com/Blockstream/electrs
+        cd electrs
+        cargo build --release --features "esplora"
+        ```
+      </Step>
+
+      <Step title="Create Configuration">
+        Create `config.toml`:
+
+        ```toml
+        # Bitcoin Core RPC
+        daemon_rpc_addr = "127.0.0.1:8332"
+        daemon_dir = "/bitcoin"
+        
+        # HTTP server for Esplora API
+        http_addr = "127.0.0.1:3000"
+        
+        # Database
+        db_dir = "/esplora/db"
+        
+        # Network
+        network = "mainnet"
+        
+        # Esplora-specific settings
+        utxos_limit = 500
+        electrum_txs_limit = 100
+        
+        # Enable Prometheus metrics (optional)
+        monitoring_addr = "127.0.0.1:4224"
+        ```
+      </Step>
+
+      <Step title="Run Esplora">
+        ```bash
+        ./target/release/electrs --conf config.toml
+        ```
+
+        Initial indexing takes 24-72 hours.
+      </Step>
+    </Steps>
+
+    <Note>
+    Esplora uses an HTTP API instead of the Electrum protocol. Mempool connects via REST API.
+    </Note>
+  </Tab>
+
+  <Tab title="Fulcrum">
+    ### Fulcrum
+
+    **System Requirements:**
+    - 80+ GB free disk space
+    - 6+ GB RAM
+    - Qt5 development libraries
+
+    <Steps>
+      <Step title="Install Dependencies">
+        ```bash
+        # Debian/Ubuntu
+        sudo apt-get install build-essential libssl-dev libzmq3-dev \
+          qtbase5-dev qttools5-dev qttools5-dev-tools libqt5charts5-dev
+
+        # macOS
+        brew install qt@5 openssl zeromq
+        ```
+      </Step>
+
+      <Step title="Download and Build">
+        ```bash
+        git clone https://github.com/cculianu/Fulcrum
+        cd Fulcrum
+        qmake Fulcrum.pro
+        make -j$(nproc)
+        ```
+      </Step>
+
+      <Step title="Create Configuration">
+        Create `fulcrum.conf`:
+
+        ```ini
+        # Bitcoin Core RPC
+        rpcuser = mempool
+        rpcpassword = your_password_here
+        bitcoind = 127.0.0.1:8332
+
+        # Data directory
+        datadir = /fulcrum/db
+
+        # Listening ports
+        tcp = 0.0.0.0:50001
+        ssl = 0.0.0.0:50002
+
+        # SSL certificate (optional but recommended)
+        # cert = /path/to/server.crt
+        # key = /path/to/server.key
+
+        # Performance tuning
+        db_max_open_files = 200
+        fast-sync = 2048
+
+        # Network
+        # testnet = 1  # Uncomment for testnet
+        ```
+      </Step>
+
+      <Step title="Run Fulcrum">
+        ```bash
+        ./Fulcrum fulcrum.conf
+        ```
+
+        Initial sync takes 12-36 hours.
+      </Step>
+    </Steps>
+
+    <Accordion title="Performance Tuning">
+      Fulcrum performance tips:
+
+      **Memory:**
+      ```ini
+      # Increase cache sizes for faster queries
+      db_max_open_files = 400
+      fast-sync = 4096
+      ```
+
+      **Database:**
+      ```ini
+      # Use RocksDB for better performance (requires rebuild)
+      db_plugin = rocksdb
+      ```
+
+      **Workers:**
+      ```ini
+      # Adjust based on CPU cores
+      worker_threads = 4
+      ```
+    </Accordion>
+  </Tab>
+
+  <Tab title="Docker">
+    ### Docker Deployment
+
+    Run Electrum servers easily with Docker:
+
+    **Fulcrum:**
+    ```yaml
+    version: '3.7'
+
+    services:
+      fulcrum:
+        image: cculianu/fulcrum:latest
+        volumes:
+          - fulcrum_data:/data
+          - ./fulcrum.conf:/fulcrum.conf:ro
+        ports:
+          - "50001:50001"
+          - "50002:50002"
+        restart: always
+
+    volumes:
+      fulcrum_data:
+    ```
+
+    **Electrs:**
+    ```yaml
+    version: '3.7'
+
+    services:
+      electrs:
+        image: getumbrel/electrs:latest
+        volumes:
+          - electrs_data:/data
+          - bitcoin_data:/bitcoin:ro
+        environment:
+          ELECTRS_NETWORK: "bitcoin"
+          ELECTRS_DAEMON_RPC_ADDR: "bitcoind:8332"
+          ELECTRS_DAEMON_P2P_ADDR: "bitcoind:8333"
+        ports:
+          - "50001:50001"
+        restart: always
+
+    volumes:
+      electrs_data:
+      bitcoin_data:
+    ```
+  </Tab>
+</Tabs>
+
+## Connecting Mempool to Electrum Server
+
+Configure the Mempool backend to use your Electrum server.
+
+<Tabs>
+  <Tab title="Electrum Protocol">
+    ### Electrum Protocol (romanz/electrs, Fulcrum)
+
+    Configure in `mempool-config.json`:
+
+    ```json
+    {
+      "MEMPOOL": {
+        "BACKEND": "electrum"
+      },
+      "ELECTRUM": {
+        "HOST": "127.0.0.1",
+        "PORT": 50002,
+        "TLS_ENABLED": true
+      }
+    }
+    ```
+
+    | Parameter | Description |
+    |-----------|-------------|
+    | `BACKEND` | Set to `"electrum"` for Electrum protocol servers |
+    | `HOST` | Electrum server hostname or IP |
+    | `PORT` | Electrum server port (50001 for TCP, 50002 for SSL) |
+    | `TLS_ENABLED` | `true` for SSL/TLS connection, `false` for plain TCP |
+
+    <Warning>
+    If using plain TCP (`TLS_ENABLED: false`), ensure the connection is local or secured by other means. Never expose unencrypted Electrum connections to the internet.
+    </Warning>
+
+    **Docker Environment Variables:**
+    ```yaml
+    api:
+      environment:
+        MEMPOOL_BACKEND: "electrum"
+        ELECTRUM_HOST: "fulcrum"
+        ELECTRUM_PORT: "50002"
+        ELECTRUM_TLS_ENABLED: "true"
+    ```
+  </Tab>
+
+  <Tab title="Esplora API">
+    ### Esplora REST API (Blockstream/electrs)
+
+    Configure in `mempool-config.json`:
+
+    ```json
+    {
+      "MEMPOOL": {
+        "BACKEND": "esplora"
+      },
+      "ESPLORA": {
+        "REST_API_URL": "http://127.0.0.1:3000",
+        "UNIX_SOCKET_PATH": null,
+        "BATCH_QUERY_BASE_SIZE": 1000,
+        "RETRY_UNIX_SOCKET_AFTER": 30000,
+        "REQUEST_TIMEOUT": 10000,
+        "FALLBACK_TIMEOUT": 5000,
+        "FALLBACK": [],
+        "MAX_BEHIND_TIP": 2
+      }
+    }
+    ```
+
+    | Parameter | Description |
+    |-----------|-------------|
+    | `BACKEND` | Set to `"esplora"` for Esplora API |
+    | `REST_API_URL` | HTTP URL for Esplora REST API |
+    | `UNIX_SOCKET_PATH` | Unix socket path (alternative to HTTP, use `null` to disable) |
+    | `BATCH_QUERY_BASE_SIZE` | Number of items per batch query |
+    | `REQUEST_TIMEOUT` | HTTP request timeout in milliseconds |
+    | `FALLBACK` | Array of fallback Esplora URLs |
+    | `MAX_BEHIND_TIP` | Maximum blocks behind tip before switching to fallback |
+
+    **Docker Environment Variables:**
+    ```yaml
+    api:
+      environment:
+        MEMPOOL_BACKEND: "esplora"
+        ESPLORA_REST_API_URL: "http://esplora:3000"
+        ESPLORA_BATCH_QUERY_BASE_SIZE: "1000"
+    ```
+
+    <Accordion title="Unix Socket Configuration">
+      For best performance, use Unix sockets instead of HTTP:
+
+      ```json
+      {
+        "ESPLORA": {
+          "REST_API_URL": "",
+          "UNIX_SOCKET_PATH": "/tmp/esplora-socket",
+          "RETRY_UNIX_SOCKET_AFTER": 30000
+        }
+      }
+      ```
+
+      Configure Esplora to listen on Unix socket:
+      ```toml
+      # In electrs config.toml
+      http_socket_file = "/tmp/esplora-socket"
+      ```
+    </Accordion>
+  </Tab>
+
+  <Tab title="No Backend">
+    ### No Electrum Server
+
+    Run Mempool without an Electrum server (address lookups disabled):
+
+    ```json
+    {
+      "MEMPOOL": {
+        "BACKEND": "none"
+      }
+    }
+    ```
+
+    **Docker Environment Variables:**
+    ```yaml
+    api:
+      environment:
+        MEMPOOL_BACKEND: "none"
+    ```
+
+    <Note>
+    This configuration is useful for:
+    - Testing and development
+    - Mempool-only visualization
+    - Resource-constrained environments
+    - When address lookups are not required
+    </Note>
+  </Tab>
+</Tabs>
+
+## Verification
+
+Verify your Electrum server is working correctly:
+
+<Steps>
+  <Step title="Check Electrum Server Status">
+    <Tabs>
+      <Tab title="Electrum Protocol">
+        Test with telnet or netcat:
+
+        ```bash
+        # Test TCP connection
+        echo '{"id":1,"method":"server.version","params":["test","1.4"]}' | nc 127.0.0.1 50001
+        ```
+
+        Expected response:
+        ```json
+        {"jsonrpc":"2.0","result":["Fulcrum 1.9.0","1.4"],"id":1}
+        ```
+      </Tab>
+
+      <Tab title="Esplora API">
+        Test with curl:
+
+        ```bash
+        curl http://127.0.0.1:3000/api/blocks/tip/height
+        ```
+
+        Expected response: Current block height as plain text
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Test Address Lookup">
+    Query an address through your Electrum server:
+
+    ```bash
+    # Replace with a known address
+    curl http://localhost:8999/api/v1/address/bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
+    ```
+
+    Should return address information and transaction history.
+  </Step>
+
+  <Step title="Check Mempool Logs">
+    Start Mempool backend and verify Electrum connection:
+
+    ```bash
+    cd backend
+    npm run start
+    ```
+
+    Look for successful connection messages in logs.
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Connection Refused">
+    **Symptom:** `Error: connect ECONNREFUSED 127.0.0.1:50001`
+
+    **Solutions:**
+    1. Verify Electrum server is running
+    2. Check listening ports: `netstat -tlnp | grep 50001`
+    3. Verify firewall allows connections
+    4. Check Electrum server logs for errors
+    5. Ensure Electrum server has finished initial sync
+  </Accordion>
+
+  <Accordion title="TLS/SSL Errors">
+    **Symptom:** Certificate or SSL handshake errors
+
+    **Solutions:**
+    1. Set `TLS_ENABLED: false` to use plain TCP (local only)
+    2. Verify SSL certificate is valid
+    3. Check certificate paths in Electrum server config
+    4. Use self-signed certificate for local development
+  </Accordion>
+
+  <Accordion title="Slow Address Queries">
+    **Symptom:** Address lookups timeout or are very slow
+
+    **Solutions:**
+    1. Increase `REQUEST_TIMEOUT` in Esplora config
+    2. Ensure Electrum server has finished indexing
+    3. Add more RAM to Electrum server
+    4. Use faster storage (NVMe)
+    5. Consider switching to Fulcrum or Esplora for better performance
+    6. Reduce `BATCH_QUERY_BASE_SIZE` for Esplora
+  </Accordion>
+
+  <Accordion title="Incomplete Transaction History">
+    **Symptom:** Missing transactions for an address
+
+    **Solutions:**
+    1. Wait for Electrum server to finish syncing
+    2. Verify Bitcoin Core has `txindex=1` enabled and synced
+    3. Restart Electrum server to trigger reindex
+    4. Check Electrum server logs for indexing errors
+  </Accordion>
+</AccordionGroup>
+
+## Performance Optimization
+
+<CardGroup cols={2}>
+  <Card title="Choose Fast Backend" icon="rocket">
+    Fulcrum and Esplora offer the best query performance. Consider upgrading from romanz/electrs for production.
+  </Card>
+
+  <Card title="Use Unix Sockets" icon="plug">
+    Unix sockets are faster than HTTP for local connections. Configure Esplora with `UNIX_SOCKET_PATH`.
+  </Card>
+
+  <Card title="Tune Batch Sizes" icon="layer-group">
+    Adjust `BATCH_QUERY_BASE_SIZE` based on your server's capabilities. Higher values = faster but more memory.
+  </Card>
+
+  <Card title="Enable Fallbacks" icon="life-ring">
+    Configure fallback Esplora servers for redundancy and improved uptime.
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Backend Configuration" icon="server" href="/configuration/backend-config">
+    Complete Mempool backend setup
+  </Card>
+  
+  <Card title="Bitcoin Core" icon="bitcoin" href="/configuration/bitcoin-core">
+    Optimize Bitcoin Core configuration
+  </Card>
+  
+  <Card title="Database Setup" icon="database" href="/configuration/database">
+    Configure MariaDB for historical data
+  </Card>
+  
+  <Card title="Production Deployment" icon="industry" href="/installation/production">
+    Deploy Mempool to production
+  </Card>
+</CardGroup>

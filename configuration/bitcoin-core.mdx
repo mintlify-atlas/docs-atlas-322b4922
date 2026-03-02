@@ -1,0 +1,506 @@
+---
+title: 'Bitcoin Core Configuration'
+description: 'Configure Bitcoin Core RPC connection for Mempool backend'
+icon: 'bitcoin'
+---
+
+Mempool requires a connection to Bitcoin Core via RPC (Remote Procedure Call) to access blockchain data and mempool information. This guide covers the required Bitcoin Core configuration and how to connect it to the Mempool backend.
+
+## Prerequisites
+
+<Steps>
+  <Step title="Install Bitcoin Core">
+    Download and install Bitcoin Core from [bitcoin.org](https://bitcoin.org) or your distribution's package manager.
+    
+    Mempool works with Bitcoin Core 0.21.0 and later.
+  </Step>
+
+  <Step title="Sync the Blockchain">
+    Bitcoin Core must be fully synced with the blockchain. Initial sync can take several days depending on your hardware and network speed.
+  </Step>
+
+  <Step title="Ensure Sufficient Disk Space">
+    Bitcoin Core requires:
+    - Mainnet: ~500+ GB
+    - Testnet: ~30+ GB
+    - Signet: ~5+ GB
+    - Regtest: Minimal
+  </Step>
+</Steps>
+
+## Required Bitcoin Core Settings
+
+Mempool requires specific Bitcoin Core configuration options to function properly.
+
+<Tabs>
+  <Tab title="Minimal Configuration">
+    ### Basic Setup (Bitcoin Core Only)
+
+    Add the following to your `bitcoin.conf` file:
+
+    ```ini
+    # Enable transaction index (required)
+    txindex=1
+
+    # Enable RPC server
+    server=1
+
+    # RPC credentials
+    rpcuser=mempool
+    rpcpassword=your_secure_password_here
+    ```
+
+    <Warning>
+    **Never use default passwords in production!** Generate a strong, unique password for `rpcpassword`.
+    </Warning>
+
+    **After Configuration:**
+    1. Restart Bitcoin Core
+    2. Wait for `txindex` to build (this can take several hours)
+
+    <Note>
+    This minimal configuration is sufficient for Mempool to work, but address lookups will not be available. See the [Electrum Server](/configuration/electrum-server) guide for full functionality.
+    </Note>
+  </Tab>
+
+  <Tab title="Recommended Configuration">
+    ### Production Setup
+
+    Recommended `bitcoin.conf` for production Mempool instances:
+
+    ```ini
+    # Data directory
+    datadir=/bitcoin
+
+    # Enable transaction index (required for Mempool)
+    txindex=1
+
+    # Enable coinstats index (optional, for additional statistics)
+    coinstatsindex=1
+
+    # Network
+    server=1
+    listen=1
+    discover=1
+
+    # Performance tuning
+    dbcache=8192
+    maxconnections=100
+
+    # RPC configuration
+    rpcallowip=127.0.0.1
+    rpcuser=mempool
+    rpcpassword=your_secure_password_here
+
+    # Whitelist Mempool backend
+    whitelist=127.0.0.1
+
+    # ZMQ for real-time updates (optional)
+    zmqpubrawblock=tcp://127.0.0.1:8334
+    zmqpubrawtx=tcp://127.0.0.1:8335
+
+    # Disable BIP 157 block filters (not needed for Mempool)
+    blocksxor=0
+
+    # High precision timestamps in logs
+    logtimemicros=1
+
+    # Network-specific settings
+    [main]
+    mempoolexpiry=999999
+    maxmempool=4096
+    rpcbind=127.0.0.1:8332
+    rpcbind=[::1]:8332
+    bind=0.0.0.0:8333
+    bind=[::]:8333
+    ```
+
+    <Accordion title="Configuration Option Explanations">
+      | Option | Description |
+      |--------|-------------|
+      | `txindex=1` | **Required** - Maintains a full transaction index |
+      | `coinstatsindex=1` | Optional - Enables coin statistics index |
+      | `server=1` | **Required** - Enables RPC server |
+      | `dbcache=8192` | Increases database cache to 8GB for better performance |
+      | `maxconnections=100` | Limits peer connections |
+      | `rpcallowip` | Restricts RPC access to localhost |
+      | `whitelist` | Whitelists IP addresses (prevents banning) |
+      | `zmqpubrawblock` | Publishes new blocks via ZMQ |
+      | `zmqpubrawtx` | Publishes new transactions via ZMQ |
+      | `mempoolexpiry` | Keeps transactions in mempool longer |
+      | `maxmempool` | Maximum mempool size in MB |
+    </Accordion>
+  </Tab>
+
+  <Tab title="Multiple Networks">
+    ### Multi-Network Configuration
+
+    Configure Bitcoin Core to support multiple networks simultaneously:
+
+    ```ini
+    # Global settings
+    datadir=/bitcoin
+    txindex=1
+    coinstatsindex=1
+    server=1
+    listen=1
+    dbcache=8192
+    rpcuser=mempool
+    rpcpassword=your_secure_password_here
+    rpcallowip=127.0.0.1
+
+    # Mainnet
+    [main]
+    mempoolexpiry=999999
+    maxmempool=4096
+    rpcbind=127.0.0.1:8332
+    bind=0.0.0.0:8333
+    zmqpubrawblock=tcp://127.0.0.1:8334
+    zmqpubrawtx=tcp://127.0.0.1:8335
+
+    # Testnet
+    [test]
+    daemon=1
+    rpcbind=127.0.0.1:18332
+    bind=0.0.0.0:18333
+    zmqpubrawblock=tcp://127.0.0.1:18334
+    zmqpubrawtx=tcp://127.0.0.1:18335
+
+    # Signet
+    [signet]
+    daemon=1
+    rpcbind=127.0.0.1:38332
+    bind=0.0.0.0:38333
+    zmqpubrawblock=tcp://127.0.0.1:38334
+    zmqpubrawtx=tcp://127.0.0.1:38335
+
+    # Testnet4
+    [testnet4]
+    daemon=1
+    rpcbind=127.0.0.1:48332
+    bind=0.0.0.0:48333
+    zmqpubrawblock=tcp://127.0.0.1:48334
+    zmqpubrawtx=tcp://127.0.0.1:48335
+    ```
+
+    **Network RPC Ports:**
+    - Mainnet: `8332`
+    - Testnet: `18332`
+    - Signet: `38332`
+    - Testnet4: `48332`
+    - Regtest: `18443`
+  </Tab>
+
+  <Tab title="Docker">
+    ### Docker Configuration
+
+    When running Bitcoin Core in Docker, use environment variables or volume-mounted config:
+
+    ```yaml
+    version: '3.7'
+
+    services:
+      bitcoind:
+        image: btcpayserver/bitcoin:25.0
+        volumes:
+          - bitcoin_data:/bitcoin
+          - ./bitcoin.conf:/bitcoin/bitcoin.conf:ro
+        ports:
+          - "8332:8332"
+          - "8333:8333"
+        restart: always
+
+    volumes:
+      bitcoin_data:
+    ```
+
+    The Mempool backend can connect to Bitcoin Core using Docker's internal networking:
+
+    ```yaml
+    api:
+      environment:
+        CORE_RPC_HOST: "bitcoind"
+        CORE_RPC_PORT: "8332"
+    ```
+  </Tab>
+</Tabs>
+
+## Connecting Mempool to Bitcoin Core
+
+Configure the Mempool backend to connect to your Bitcoin Core instance.
+
+<Tabs>
+  <Tab title="Username & Password">
+    ### RPC Authentication with Credentials
+
+    Configure Bitcoin Core RPC connection in `mempool-config.json`:
+
+    ```json
+    {
+      "CORE_RPC": {
+        "HOST": "127.0.0.1",
+        "PORT": 8332,
+        "USERNAME": "mempool",
+        "PASSWORD": "your_secure_password_here",
+        "TIMEOUT": 60000,
+        "COOKIE": false,
+        "COOKIE_PATH": ""
+      }
+    }
+    ```
+
+    | Parameter | Description |
+    |-----------|-------------|
+    | `HOST` | Bitcoin Core RPC host (usually `127.0.0.1`) |
+    | `PORT` | Bitcoin Core RPC port (default: `8332` for mainnet) |
+    | `USERNAME` | RPC username from `bitcoin.conf` |
+    | `PASSWORD` | RPC password from `bitcoin.conf` |
+    | `TIMEOUT` | RPC timeout in milliseconds |
+
+    <Warning>
+    Store credentials securely. Never commit passwords to version control.
+    </Warning>
+  </Tab>
+
+  <Tab title="Cookie Authentication">
+    ### RPC Authentication with Cookie File
+
+    Bitcoin Core can use a `.cookie` file for authentication instead of username/password:
+
+    ```json
+    {
+      "CORE_RPC": {
+        "HOST": "127.0.0.1",
+        "PORT": 8332,
+        "USERNAME": "",
+        "PASSWORD": "",
+        "TIMEOUT": 60000,
+        "COOKIE": true,
+        "COOKIE_PATH": "/bitcoin/.cookie"
+      }
+    }
+    ```
+
+    **Cookie File Locations:**
+    - Linux: `~/.bitcoin/.cookie`
+    - macOS: `~/Library/Application Support/Bitcoin/.cookie`
+    - Windows: `%APPDATA%\Bitcoin\.cookie`
+
+    <Note>
+    The Mempool backend user needs read permissions for the cookie file:
+    ```bash
+    chmod 640 /bitcoin/.cookie
+    chown bitcoin:mempool /bitcoin/.cookie
+    ```
+    </Note>
+  </Tab>
+
+  <Tab title="Docker Environment">
+    ### Docker Environment Variables
+
+    When using Docker, configure via environment variables:
+
+    ```yaml
+    api:
+      environment:
+        CORE_RPC_HOST: "172.27.0.1"  # Docker gateway IP
+        CORE_RPC_PORT: "8332"
+        CORE_RPC_USERNAME: "mempool"
+        CORE_RPC_PASSWORD: "your_secure_password_here"
+        CORE_RPC_TIMEOUT: "60000"
+    ```
+
+    **Network Configuration:**
+    - `172.27.0.1` is Docker's default gateway IP
+    - Use container name if Bitcoin Core is also in Docker
+    - Update accordingly for your network setup
+  </Tab>
+</Tabs>
+
+## Advanced Configuration
+
+<AccordionGroup>
+  <Accordion title="Second Bitcoin Core Node">
+    Configure a second Bitcoin Core node for redundancy or min fee queries:
+
+    ```json
+    {
+      "MEMPOOL": {
+        "USE_SECOND_NODE_FOR_MINFEE": true
+      },
+      "SECOND_CORE_RPC": {
+        "HOST": "127.0.0.1",
+        "PORT": 8332,
+        "USERNAME": "mempool",
+        "PASSWORD": "password",
+        "TIMEOUT": 60000,
+        "COOKIE": false,
+        "COOKIE_PATH": ""
+      }
+    }
+    ```
+
+    **Use Cases:**
+    - Load balancing
+    - Failover redundancy
+    - Separate node for fee estimation
+  </Accordion>
+
+  <Accordion title="Debug Log Monitoring">
+    Monitor Bitcoin Core's debug log for advanced troubleshooting:
+
+    ```json
+    {
+      "CORE_RPC": {
+        "DEBUG_LOG_PATH": "/bitcoin/debug.log"
+      }
+    }
+    ```
+
+    The backend can parse the debug log for additional insights.
+  </Accordion>
+
+  <Accordion title="Network-Specific Ports">
+    Default RPC ports for different networks:
+
+    | Network | RPC Port | P2P Port |
+    |---------|----------|----------|
+    | Mainnet | 8332 | 8333 |
+    | Testnet | 18332 | 18333 |
+    | Signet | 38332 | 38333 |
+    | Testnet4 | 48332 | 48333 |
+    | Regtest | 18443 | 18444 |
+
+    Configure the appropriate port in `mempool-config.json` based on your network.
+  </Accordion>
+</AccordionGroup>
+
+## Verification
+
+Verify your Bitcoin Core RPC connection is working:
+
+<Steps>
+  <Step title="Test Bitcoin Core RPC">
+    Test the RPC connection directly:
+
+    ```bash
+    bitcoin-cli -rpcuser=mempool -rpcpassword=your_password getblockchaininfo
+    ```
+
+    Expected output includes:
+    - Current block height
+    - Chain name
+    - Sync status
+  </Step>
+
+  <Step title="Check txindex">
+    Verify transaction index is enabled and synced:
+
+    ```bash
+    bitcoin-cli -rpcuser=mempool -rpcpassword=your_password getindexinfo
+    ```
+
+    Look for `txindex` with `"synced": true`
+  </Step>
+
+  <Step title="Start Mempool Backend">
+    Start the Mempool backend and check logs:
+
+    ```bash
+    cd backend
+    npm run start
+    ```
+
+    Successful connection shows:
+    ```
+    Updating mempool
+    Mempool updated in 0.189 seconds
+    ```
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Connection Refused">
+    **Symptom:** `Error: connect ECONNREFUSED 127.0.0.1:8332`
+
+    **Solutions:**
+    1. Verify Bitcoin Core is running: `bitcoin-cli getblockchaininfo`
+    2. Check `server=1` is in `bitcoin.conf`
+    3. Verify RPC port is correct for your network
+    4. Check firewall settings
+    5. Ensure Bitcoin Core has finished starting up
+  </Accordion>
+
+  <Accordion title="Authentication Failed">
+    **Symptom:** `Error: Incorrect rpcuser or rpcpassword`
+
+    **Solutions:**
+    1. Verify credentials match `bitcoin.conf`
+    2. Check for special characters in password (may need escaping)
+    3. Restart Bitcoin Core after changing credentials
+    4. Try cookie authentication instead
+  </Accordion>
+
+  <Accordion title="txindex Not Available">
+    **Symptom:** `Error: No such mempool or blockchain transaction`
+
+    **Solutions:**
+    1. Add `txindex=1` to `bitcoin.conf`
+    2. Restart Bitcoin Core
+    3. Wait for txindex to build (check progress with `getindexinfo`)
+    4. Building txindex can take several hours to complete
+  </Accordion>
+
+  <Accordion title="Slow RPC Responses">
+    **Symptom:** Timeout errors or slow backend performance
+
+    **Solutions:**
+    1. Increase `CORE_RPC_TIMEOUT` in mempool config
+    2. Increase `dbcache` in `bitcoin.conf` (recommended: 4096-8192)
+    3. Use faster storage (SSD/NVMe)
+    4. Ensure Bitcoin Core has sufficient RAM
+    5. Reduce `maxconnections` to prioritize RPC
+  </Accordion>
+</AccordionGroup>
+
+## Performance Tips
+
+<CardGroup cols={2}>
+  <Card title="Increase dbcache" icon="memory">
+    Set `dbcache=8192` or higher (in MB) to keep more blockchain data in memory.
+  </Card>
+
+  <Card title="Use Fast Storage" icon="bolt">
+    Store Bitcoin Core data on SSD or NVMe for 10x faster operations.
+  </Card>
+
+  <Card title="Enable ZMQ" icon="tower-broadcast">
+    Configure ZMQ for real-time block and transaction notifications.
+  </Card>
+
+  <Card title="Whitelist Backend" icon="shield-check">
+    Add Mempool backend IP to `whitelist` to prevent RPC throttling.
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Electrum Server" icon="bolt" href="/configuration/electrum-server">
+    Set up an Electrum server for address lookups
+  </Card>
+  
+  <Card title="Database Setup" icon="database" href="/configuration/database">
+    Configure MariaDB for historical data
+  </Card>
+  
+  <Card title="Backend Config" icon="server" href="/configuration/backend-config">
+    Complete backend configuration
+  </Card>
+  
+  <Card title="Bitcoin Core Docs" icon="book" href="https://developer.bitcoin.org/reference/rpc/">
+    Bitcoin Core RPC documentation
+  </Card>
+</CardGroup>

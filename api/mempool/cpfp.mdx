@@ -1,0 +1,277 @@
+---
+title: 'CPFP Endpoints'
+description: 'Analyze Child-Pays-for-Parent transaction relationships'
+---
+
+## Get Transaction CPFP Info
+
+<CodeGroup>
+```bash curl
+curl "https://mempool.space/api/v1/cpfp/TXID"
+```
+</CodeGroup>
+
+<RequestExample>
+```bash Request
+GET /api/v1/cpfp/:txId
+```
+</RequestExample>
+
+Returns CPFP (Child-Pays-for-Parent) information for a transaction, including ancestors, descendants, and effective fee rate.
+
+### Path Parameters
+
+<ParamField path="txId" type="string" required>
+  Transaction ID (64-character hex string)
+</ParamField>
+
+### Response
+
+<ResponseField name="ancestors" type="array" required>
+  Array of ancestor transactions that must be mined before this transaction. Each ancestor contains:
+  - `txid`: Transaction ID
+  - `weight`: Transaction weight in weight units
+  - `fee`: Transaction fee in satoshis
+</ResponseField>
+
+<ResponseField name="bestDescendant" type="object | null">
+  Best descendant transaction (highest fee rate) that pays for this transaction. Contains `txid`, `weight`, and `fee`. `null` if no descendants.
+</ResponseField>
+
+<ResponseField name="descendants" type="array">
+  Array of descendant transactions. Same structure as ancestors.
+</ResponseField>
+
+<ResponseField name="effectiveFeePerVsize" type="number">
+  Effective fee rate considering the entire CPFP cluster (sat/vB)
+</ResponseField>
+
+<ResponseField name="sigops" type="number" required>
+  Number of signature operations in the transaction
+</ResponseField>
+
+<ResponseField name="adjustedVsize" type="number" required>
+  Adjusted virtual size accounting for sigops
+</ResponseField>
+
+<ResponseField name="fee" type="number" required>
+  Transaction fee in satoshis
+</ResponseField>
+
+<ResponseField name="acceleration" type="boolean">
+  Whether this transaction is accelerated
+</ResponseField>
+
+<ResponseField name="acceleratedBy" type="array">
+  Array of pool IDs that are accelerating this transaction
+</ResponseField>
+
+<ResponseField name="acceleratedAt" type="number">
+  Unix timestamp when acceleration was added
+</ResponseField>
+
+<ResponseField name="feeDelta" type="number">
+  Additional fee from acceleration (satoshis)
+</ResponseField>
+
+<ResponseExample>
+```json Response Example - Mempool Transaction
+{
+  "ancestors": [
+    {
+      "txid": "parent123...",
+      "weight": 800,
+      "fee": 2000
+    }
+  ],
+  "bestDescendant": null,
+  "descendants": [],
+  "effectiveFeePerVsize": 25.5,
+  "sigops": 4,
+  "adjustedVsize": 220,
+  "fee": 5000,
+  "acceleration": false
+}
+```
+
+```json Response Example - Confirmed Transaction
+{
+  "ancestors": [
+    {
+      "txid": "parent456...",
+      "weight": 1200,
+      "fee": 3000
+    },
+    {
+      "txid": "grandparent789...",
+      "weight": 600,
+      "fee": 1500
+    }
+  ],
+  "bestDescendant": {
+    "txid": "child012...",
+    "weight": 400,
+    "fee": 8000
+  },
+  "descendants": [
+    {
+      "txid": "child012...",
+      "weight": 400,
+      "fee": 8000
+    }
+  ],
+  "effectiveFeePerVsize": 42.3,
+  "sigops": 2,
+  "adjustedVsize": 300,
+  "fee": 4000
+}
+```
+
+```json Response Example - Not Found
+{
+  "ancestors": []
+}
+```
+</ResponseExample>
+
+### Behavior
+
+**For mempool transactions:**
+- Returns live CPFP data from mempool analysis
+- Includes current effective fee rate and cluster information
+- Updated as mempool state changes
+
+**For confirmed transactions:**
+- Returns historical CPFP data from database (if `DATABASE.ENABLED` is true)
+- Shows the CPFP relationships that existed when the transaction was mined
+
+**For unknown transactions:**
+- Returns minimal response with empty ancestors array
+
+### CPFP Calculation
+
+The effective fee rate is calculated by:
+
+1. Identifying the CPFP cluster (set of related unconfirmed transactions)
+2. Summing total fees and total weight for the entire cluster
+3. Computing: `effectiveFeePerVsize = totalFees / (totalWeight / 4)`
+
+Transactions are grouped into clusters when:
+- They share unconfirmed ancestors
+- They form a dependency chain
+- They would be mined together as a package
+
+### Use Cases
+
+- **Fee bumping**: Determine if CPFP is effective for speeding up a stuck transaction
+- **Wallet optimization**: Calculate required child transaction fee for CPFP
+- **Mining analysis**: Understand which transactions are bundled together
+- **Block projection**: Predict transaction inclusion based on effective fee rates
+
+---
+
+## Calculate Local Transaction CPFP
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://mempool.space/api/v1/cpfp" \
+  -H "Content-Type: application/json" \
+  -d '[{
+    "txid": "abc123...",
+    "weight": 800,
+    "sigops": 4,
+    "fee": 5000,
+    "vin": [
+      {"txid": "parent123...", "vout": 0}
+    ],
+    "vout": []
+  }]'
+```
+</CodeGroup>
+
+<RequestExample>
+```bash Request
+POST /api/v1/cpfp
+```
+</RequestExample>
+
+Calculates CPFP information for local (not yet broadcast) transactions. Useful for fee estimation and transaction building.
+
+### Request Body
+
+Array of transaction objects (currently limited to 1 transaction):
+
+<ParamField body="txid" type="string" required>
+  Transaction ID (64-character hex string)
+</ParamField>
+
+<ParamField body="weight" type="number" required>
+  Transaction weight in weight units
+</ParamField>
+
+<ParamField body="sigops" type="number" required>
+  Number of signature operations
+</ParamField>
+
+<ParamField body="fee" type="number" required>
+  Transaction fee in satoshis
+</ParamField>
+
+<ParamField body="vin" type="array" required>
+  Array of transaction inputs. Each input must have:
+  - `txid`: Parent transaction ID
+  - `vout`: Output index being spent
+</ParamField>
+
+<ParamField body="vout" type="array" required>
+  Array of transaction outputs (can be empty for this calculation)
+</ParamField>
+
+### Response
+
+Returns an array with a single CPFP info object (same structure as GET `/cpfp/:txId`).
+
+<ResponseExample>
+```json Response Example
+[
+  {
+    "ancestors": [
+      {
+        "txid": "parent123...",
+        "weight": 1000,
+        "fee": 3000
+      }
+    ],
+    "bestDescendant": null,
+    "descendants": [],
+    "effectiveFeePerVsize": 20.5,
+    "sigops": 4,
+    "adjustedVsize": 200,
+    "fee": 5000
+  }
+]
+```
+</ResponseExample>
+
+### Notes
+
+- Currently only supports calculating CPFP for a single transaction
+- The transaction doesn't need to be in the mempool
+- Parent transactions must be in the mempool for accurate calculations
+- Returns 400 error if transaction format is invalid
+- Returns 400 error if more than one transaction is provided
+
+### Validation
+
+The endpoint validates:
+- Transaction object structure
+- `txid` format (64-character hex)
+- Numeric fields (`weight`, `sigops`, `fee`)
+- Array fields (`vin`, `vout`)
+
+### Use Cases
+
+- **Wallet development**: Preview CPFP effect before broadcasting
+- **Fee optimization**: Calculate required child fee to achieve target rate
+- **Transaction building**: Validate CPFP strategy for complex payment flows
+- **Testing**: Simulate CPFP scenarios without broadcasting transactions

@@ -1,0 +1,715 @@
+---
+title: 'Lightning Explorer'
+description: 'Explore the Lightning Network with node statistics, channel analytics, and network topology visualization'
+icon: 'bolt'
+---
+
+## Overview
+
+The Lightning Explorer provides deep insights into Bitcoin's Lightning Network - a Layer 2 payment protocol enabling instant, low-fee transactions. Explore nodes, channels, capacity statistics, and network topology.
+
+<img src="/images/lightning-dashboard.png" alt="Lightning Network explorer dashboard" />
+
+## What is Lightning Network?
+
+The Lightning Network is a second-layer protocol built on top of Bitcoin:
+
+- **Instant Payments**: Transactions confirm immediately
+- **Low Fees**: Typically < 1 sat per transaction
+- **Scalability**: Millions of transactions per second possible
+- **Privacy**: Payments don't appear on the blockchain
+
+<Info>
+  Lightning uses payment channels - pre-funded connections between nodes that allow multiple transactions without touching the blockchain.
+</Info>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Node Explorer" icon="server">
+    Search and analyze Lightning nodes including capacity, channels, and connectivity.
+  </Card>
+  
+  <Card title="Channel Analytics" icon="route">
+    View channel details, fees, capacity, and routing statistics.
+  </Card>
+  
+  <Card title="Network Statistics" icon="chart-line">
+    Track total capacity, node count, channel count, and growth metrics.
+  </Card>
+  
+  <Card title="Topology Map" icon="diagram-project">
+    Visualize network structure and node connections.
+  </Card>
+</CardGroup>
+
+## Network Statistics
+
+### Global Metrics
+
+The dashboard displays key Lightning Network stats:
+
+<Tabs>
+  <Tab title="Network Capacity">
+    **Total BTC Locked**
+    
+    Sum of all Bitcoin locked in Lightning channels:
+    - Total capacity in BTC and USD
+    - Growth over time
+    - Percentage of Bitcoin supply
+    - Comparison to historical peaks
+    
+    Current typical range: 3,000-5,000 BTC
+    
+    <img src="/images/lightning-capacity.png" alt="Lightning network capacity chart" />
+  </Tab>
+  
+  <Tab title="Node Count">
+    **Active Lightning Nodes**
+    
+    Number of public nodes on the network:
+    - Total node count
+    - Active vs. inactive nodes
+    - New nodes (24h, 7d, 30d)
+    - Geographic distribution
+    - Node implementations (LND, CLN, Eclair)
+    
+    <Info>
+      Only public nodes are counted. Private nodes don't announce themselves.
+    </Info>
+  </Tab>
+  
+  <Tab title="Channel Count">
+    **Payment Channels**
+    
+    Total number of channels:
+    - Active channels
+    - Channel openings/closings
+    - Average channel size
+    - Channel age distribution
+    
+    Typical network: 40,000-60,000 channels
+  </Tab>
+  
+  <Tab title="Growth Trends">
+    **Network Evolution**
+    
+    Historical metrics showing:
+    - Capacity growth trajectory
+    - Node adoption rate
+    - Channel dynamics
+    - Major network events
+    
+    <img src="/images/lightning-growth.png" alt="Lightning network growth chart" />
+  </Tab>
+</Tabs>
+
+### Network Health
+
+Indicators of Lightning Network health:
+
+<CardGroup cols={2}>
+  <Card title="Average Channel Size" icon="gauge">
+    Median: ~5,000,000 sats (0.05 BTC)
+    
+    Larger channels support bigger payments
+  </Card>
+  
+  <Card title="Connectivity" icon="network-wired">
+    Average channels per node: 5-10
+    
+    Higher connectivity = better routing
+  </Card>
+  
+  <Card title="Well-Connected Nodes" icon="sitemap">
+    Top nodes with 100+ channels
+    
+    Hub nodes improve payment reliability
+  </Card>
+  
+  <Card title="Channel Updates" icon="arrows-rotate">
+    Fee and capacity changes indicate active management
+  </Card>
+</CardGroup>
+
+## Node Explorer
+
+### Finding Nodes
+
+Search for Lightning nodes by:
+- **Node public key**: 66-character hex string
+- **Node alias**: Human-readable name
+- **IP address or Tor address**
+
+<Tip>
+  Try searching for well-known nodes like "ACINQ", "OpenNode", or "Wallet of Satoshi".
+</Tip>
+
+### Node Details
+
+When viewing a node, see:
+
+<Tabs>
+  <Tab title="Overview">
+    **Node Information**
+    
+    - **Alias**: Node's chosen name
+    - **Public Key**: Unique identifier
+    - **Color**: Display color (cosmetic)
+    - **Network Address**: IP or Tor onion
+    - **Implementation**: Software (LND, CLN, Eclair, etc.)
+    - **First Seen**: When node joined network
+    - **Last Update**: Most recent activity
+    
+    <img src="/images/lightning-node.png" alt="Lightning node details" />
+  </Tab>
+  
+  <Tab title="Capacity">
+    **Liquidity Metrics**
+    
+    - **Total Capacity**: Sum of all channel capacity
+    - **Average Channel Size**: Mean capacity per channel
+    - **Largest Channel**: Biggest single channel
+    - **Capacity Distribution**: How capacity is spread
+    
+    Example node:
+    ```
+    Total Capacity: 25 BTC
+    Channels: 150
+    Average: 0.166 BTC per channel
+    ```
+  </Tab>
+  
+  <Tab title="Channels">
+    **Channel List**
+    
+    All channels connected to this node:
+    - Channel partner (other node)
+    - Capacity (total channel size)
+    - Age (time since opened)
+    - Base fee and fee rate
+    - Status (active/inactive)
+    
+    Click any channel for detailed view.
+  </Tab>
+  
+  <Tab title="Statistics">
+    **Node Analytics**
+    
+    - **Centrality Ranking**: How important node is for routing
+    - **Channel Count History**: Growth over time
+    - **Capacity History**: Liquidity changes
+    - **Fee Policy**: Routing fee statistics
+    - **Uptime**: Reliability metrics
+  </Tab>
+</Tabs>
+
+### Top Nodes Ranking
+
+View the largest and most connected nodes:
+
+<Tabs>
+  <Tab title="By Capacity">
+    Nodes ranked by total BTC capacity:
+    
+    1. Major exchanges (Kraken, Bitfinex)
+    2. Large routing nodes
+    3. Payment processors
+    4. Infrastructure providers
+    
+    <img src="/images/top-nodes-capacity.png" alt="Top nodes by capacity" />
+  </Tab>
+  
+  <Tab title="By Channels">
+    Most connected nodes:
+    
+    - Hub nodes with 100+ channels
+    - Critical for network connectivity
+    - Often run by enthusiasts or businesses
+    
+    <Warning>
+      Highly connected nodes are critical infrastructure - their failure impacts routing.
+    </Warning>
+  </Tab>
+  
+  <Tab title="By Age">
+    Oldest nodes on the network:
+    
+    - Established since early Lightning days
+    - Proven reliability
+    - Historical significance
+    - Often well-maintained
+  </Tab>
+</Tabs>
+
+## Channel Explorer
+
+### Channel Components
+
+Each Lightning channel has:
+
+- **Two participants**: Nodes at each end
+- **Capacity**: Total BTC locked in channel
+- **Balance distribution**: How capacity is split (private)
+- **Routing policies**: Fees charged by each side
+- **Channel ID**: Unique identifier
+- **Funding transaction**: On-chain tx that opened channel
+
+### Channel Details
+
+<Tabs>
+  <Tab title="Basic Info">
+    **Channel Overview**
+    
+    - **Channel ID**: Unique identifier
+    - **Node 1 & Node 2**: Connected nodes
+    - **Capacity**: Total channel size
+    - **Status**: Active, inactive, or closed
+    - **Age**: Time since channel opened
+    - **Last Update**: Recent fee/policy changes
+  </Tab>
+  
+  <Tab title="Routing Policies">
+    **Fee Structure**
+    
+    Each node sets policies for their side:
+    
+    **Node 1 → Node 2:**
+    - Base fee: 1,000 msats (flat fee per payment)
+    - Fee rate: 0.01% (proportional fee)
+    - Min HTLC: Minimum payment size
+    - Max HTLC: Maximum payment size
+    
+    **Example Calculation:**
+    ```
+    Payment: 100,000 sats
+    Base fee: 1 sat
+    Proportional: 10 sats (0.01%)
+    Total routing fee: 11 sats
+    ```
+  </Tab>
+  
+  <Tab title="On-Chain Data">
+    **Blockchain Information**
+    
+    - **Funding Transaction**: On-chain tx that opened channel
+    - **Block Height**: When channel was opened
+    - **Closing Transaction**: If channel was closed
+    - **Force Close**: Whether closed cooperatively
+    
+    <Info>
+      Opening and closing channels require on-chain transactions. Only the endpoints are visible - intermediate payments are private.
+    </Info>
+  </Tab>
+  
+  <Tab title="Historical Data">
+    **Channel History**
+    
+    - Capacity changes (if any)
+    - Fee policy updates
+    - Downtime periods
+    - Notable routing activity
+  </Tab>
+</Tabs>
+
+### Channel States
+
+<CardGroup cols={3}>
+  <Card title="Active" icon="circle-check">
+    Channel is online and routing payments
+  </Card>
+  
+  <Card title="Inactive" icon="circle-pause">
+    One or both nodes offline
+  </Card>
+  
+  <Card title="Closed" icon="circle-xmark">
+    Channel has been closed (cooperatively or forced)
+  </Card>
+</CardGroup>
+
+## Network Topology
+
+### Visualization
+
+Interactive network graph showing:
+
+- **Nodes**: Represented as circles
+- **Channels**: Lines connecting nodes
+- **Size**: Indicates capacity or connectivity
+- **Color**: Can represent age, fees, or status
+- **Clusters**: Groups of well-connected nodes
+
+<img src="/images/lightning-topology.png" alt="Lightning network topology visualization" />
+
+### Network Structure
+
+Lightning exhibits "small-world" properties:
+
+- **Hub-and-spoke**: Large nodes connect many smaller ones
+- **Short paths**: Most payments route through 3-5 hops
+- **Clustering**: Regional or business-related groups
+- **Scale-free**: Power-law distribution of connections
+
+<Info>
+  The network's structure naturally emerges from economic incentives - hubs earn routing fees, so liquidity flows to well-connected nodes.
+</Info>
+
+## Payment Routing
+
+### How Lightning Payments Work
+
+<Steps>
+  <Step title="Find Path">
+    Sender's node finds route to recipient using network topology
+  </Step>
+  
+  <Step title="Build HTLCs">
+    Creates Hash Time-Locked Contracts for each hop
+  </Step>
+  
+  <Step title="Forward Payment">
+    Each node forwards payment to next hop (onion-routed)
+  </Step>
+  
+  <Step title="Claim with Preimage">
+    Recipient reveals secret, allowing everyone to claim
+  </Step>
+  
+  <Step title="Update Balances">
+    Channel balances adjust atomically
+  </Step>
+</Steps>
+
+### Routing Analysis
+
+The explorer shows routing metrics:
+
+- **Path length distribution**: How many hops payments take
+- **Success rates**: Percentage of successful payments
+- **Common routes**: Most-used paths through network
+- **Bottlenecks**: Channels limiting payment capacity
+
+## Node Operations
+
+### Running a Lightning Node
+
+Considerations for node operators:
+
+<CardGroup cols={2}>
+  <Card title="Liquidity Management" icon="water">
+    Balance inbound/outbound capacity for optimal routing
+  </Card>
+  
+  <Card title="Channel Partners" icon="handshake">
+    Choose well-connected, reliable nodes
+  </Card>
+  
+  <Card title="Fee Optimization" icon="dollar-sign">
+    Set competitive fees to attract routing
+  </Card>
+  
+  <Card title="Monitoring" icon="chart-line">
+    Track performance and rebalance channels
+  </Card>
+</CardGroup>
+
+### Best Practices
+
+<Check>Open channels to diverse, well-connected nodes</Check>
+<Check>Monitor channel balance and rebalance regularly</Check>
+<Check>Keep node online for reliability</Check>
+<Check>Update software and monitor security</Check>
+<Check>Start small and scale as you learn</Check>
+<Check>Consider automation for channel management</Check>
+
+## Lightning Statistics
+
+### Historical Metrics
+
+Track network evolution:
+
+<Tabs>
+  <Tab title="Capacity Growth">
+    Total BTC locked over time:
+    - Launch to present trajectory
+    - Major milestones (1000 BTC, 5000 BTC, etc.)
+    - Impact of market conditions
+    - Correlation with Bitcoin price
+  </Tab>
+  
+  <Tab title="Node Adoption">
+    Number of nodes over time:
+    - Early adopters and pioneers
+    - Growth spurts
+    - Geographic expansion
+    - Implementation diversity
+  </Tab>
+  
+  <Tab title="Channel Dynamics">
+    Channel opens and closes:
+    - Net growth rate
+    - Churn (channels closing/reopening)
+    - Average lifespan
+    - Size trends
+  </Tab>
+  
+  <Tab title="Usage Metrics">
+    Network activity indicators:
+    - Payment volume (estimated)
+    - Routing success rates
+    - Popular paths
+    - Peak usage times
+  </Tab>
+</Tabs>
+
+### Comparative Analysis
+
+<CardGroup cols={2}>
+  <Card title="vs. On-Chain" icon="scale-balanced">
+    Lightning advantages:
+    - 100,000x faster
+    - 1,000x cheaper
+    - Better privacy
+    - Instant finality
+  </Card>
+  
+  <Card title="vs. Other L2s" icon="layer-group">
+    Lightning specifics:
+    - Trustless (cryptographic)
+    - Bitcoin-native
+    - Mature ecosystem
+    - Production-ready
+  </Card>
+</CardGroup>
+
+## Use Cases
+
+### What Lightning Enables
+
+<Tabs>
+  <Tab title="Micropayments">
+    **Payments Too Small for On-Chain**
+    
+    - Streaming sats per second
+    - Pay-per-article content
+    - Gaming and tipping
+    - IoT machine-to-machine payments
+    
+    Examples: 1 sat podcast streaming, 10 sat tips
+  </Tab>
+  
+  <Tab title="Instant Payments">
+    **Point-of-Sale Transactions**
+    
+    - Retail payments
+    - Coffee shops
+    - Vending machines
+    - Event ticketing
+    
+    No waiting for confirmations!
+  </Tab>
+  
+  <Tab title="Frequent Payments">
+    **Recurring or High-Volume**
+    
+    - Salary streaming
+    - Subscription services
+    - High-frequency trading
+    - Gaming/gambling
+    
+    Avoid on-chain fees for every transaction.
+  </Tab>
+  
+  <Tab title="Cross-Border">
+    **Remittances and Transfers**
+    
+    - International payments
+    - Currency exchange
+    - Remittances
+    - Arbitrage
+    
+    Near-instant settlement worldwide.
+  </Tab>
+</Tabs>
+
+## Lightning Wallets
+
+Popular Lightning-enabled wallets:
+
+<CardGroup cols={2}>
+  <Card title="Phoenix" icon="mobile">
+    Mobile wallet by ACINQ with automatic channel management
+  </Card>
+  
+  <Card title="Breez" icon="mobile-screen">
+    Self-custodial mobile wallet with podcast app
+  </Card>
+  
+  <Card title="Zeus" icon="bolt">
+    Mobile interface for LND/CLN nodes
+  </Card>
+  
+  <Card title="Muun" icon="wallet">
+    Hybrid on-chain/Lightning wallet
+  </Card>
+  
+  <Card title="BlueWallet" icon="credit-card">
+    Bitcoin and Lightning wallet
+  </Card>
+  
+  <Card title="Wallet of Satoshi" icon="coins">
+    Custodial Lightning wallet (easiest for beginners)
+  </Card>
+</CardGroup>
+
+<Warning>
+  Custodial wallets hold your keys - understand the trade-offs between convenience and self-custody.
+</Warning>
+
+## API Access
+
+Query Lightning Network data:
+
+<CodeGroup>
+```bash GET /api/v1/lightning/statistics
+curl "https://mempool.space/api/v1/lightning/statistics/latest"
+```
+
+```bash GET /api/v1/lightning/nodes/:pubkey
+curl "https://mempool.space/api/v1/lightning/nodes/[node_pubkey]"
+```
+
+```bash GET /api/v1/lightning/channels
+curl "https://mempool.space/api/v1/lightning/channels?node=[pubkey]"
+```
+
+```bash GET /api/v1/lightning/nodes/rankings
+curl "https://mempool.space/api/v1/lightning/nodes/rankings"
+```
+</CodeGroup>
+
+<Tip>
+  See [API Documentation](/api/lightning/nodes) for complete endpoints.
+</Tip>
+
+## Privacy Considerations
+
+### Lightning Privacy Features
+
+<CardGroup cols={2}>
+  <Card title="Onion Routing" icon="mask">
+    Payment paths encrypted, intermediate nodes don't know sender/receiver
+  </Card>
+  
+  <Card title="No Blockchain Records" icon="eye-slash">
+    Payments don't appear on public blockchain
+  </Card>
+  
+  <Card title="Private Channels" icon="lock">
+    Channels can be unannounced for extra privacy
+  </Card>
+  
+  <Card title="Blinded Paths" icon="route">
+    Recipients can hide their node identity
+  </Card>
+</CardGroup>
+
+### Privacy Limitations
+
+<Warning>
+  Lightning improves privacy but isn't perfect:
+  - Channel openings/closings are on-chain
+  - Node IPs can be tracked
+  - Balance probing attacks possible
+  - Well-connected nodes see routing patterns
+</Warning>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Why did my payment fail?">
+    Common reasons:
+    - Insufficient liquidity in route
+    - Channel partner offline
+    - Fee too low for route
+    - Payment amount too large
+    - No path found to recipient
+    
+    Try: Smaller amounts, different route, wait and retry
+  </Accordion>
+  
+  <Accordion title="Why can't I receive payments?">
+    Need inbound liquidity:
+    - Open channels (provides outbound)
+    - Have others open to you (inbound)
+    - Use submarine swaps
+    - Request inbound from LSP
+  </Accordion>
+  
+  <Accordion title="Why are channels closing?">
+    Channels close when:
+    - Either party closes cooperatively
+    - Force close due to dispute
+    - Breach remedy (cheating attempt)
+    - Node goes offline too long
+  </Accordion>
+  
+  <Accordion title="Why is capacity decreasing?">
+    Network capacity changes due to:
+    - Channels closing (removes capacity)
+    - Price volatility (BTC value changes)
+    - Node operators adjusting positions
+    - Normal market dynamics
+  </Accordion>
+</AccordionGroup>
+
+## Future Developments
+
+### Upcoming Features
+
+<CardGroup cols={2}>
+  <Card title="Taproot Channels" icon="tree">
+    More privacy and efficiency with MuSig2
+  </Card>
+  
+  <Card title="Channel Factories" icon="industry">
+    Shared UTXO for multiple channels
+  </Card>
+  
+  <Card title="Eltoo" icon="arrows-rotate">
+    Simplified channel updates
+  </Card>
+  
+  <Card title="Trampoline Routing" icon="person-running">
+    Let others handle routing complexity
+  </Card>
+  
+  <Card title="Dual-Funded Channels" icon="handshake-angle">
+    Both parties contribute to channel
+  </Card>
+  
+  <Card title="Splicing" icon="scissors">
+    Add/remove funds without closing
+  </Card>
+</CardGroup>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Blockchain Explorer" icon="magnifying-glass" href="/features/blockchain-explorer">
+    View on-chain channel opening/closing transactions
+  </Card>
+  
+  <Card title="Mempool Visualizer" icon="chart-area" href="/features/mempool-visualizer">
+    See on-chain fees Lightning helps you avoid
+  </Card>
+  
+  <Card title="Fee Estimation" icon="coins" href="/features/fee-estimation">
+    Compare Lightning vs. on-chain costs
+  </Card>
+  
+  <Card title="Mining Dashboard" icon="hammer" href="/features/mining-dashboard">
+    Understand Layer 1 that secures Lightning
+  </Card>
+</CardGroup>
